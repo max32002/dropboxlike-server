@@ -1,0 +1,5 @@
+Jinja2==2.8
+tornado==4.4.1
+#Starting from version 3.0.0 Pillow needs libjpeg.
+pillow==2.9.0
+
