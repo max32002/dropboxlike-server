@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS `schema_version` (
 
     # auto upgrade old version database.
     def auto_upgrade(self):
-        if self.get_rowcount()==0:
+        if self.rowcount()==0:
             # empty database, insert current version code.
             self.add(options.database_schema_version)
 

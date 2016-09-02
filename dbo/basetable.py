@@ -1,5 +1,5 @@
 ﻿import sqlite3
-import logging
+#import logging
 
 #############################################################
 class DatabaseError:
@@ -158,7 +158,7 @@ class BaseTable():
             #print("Error: {}".format(error))
             out_dic['error_code'] = error.args[0]
             out_dic['error_message'] = "{}".format(error)
-            logging.info("sqlite error: %s", "{}".format(error))
+            #logging.info("sqlite error: %s", "{}".format(error))
         return out_dic
 
 
@@ -172,7 +172,7 @@ class BaseTable():
 
     # return:
     #       rowcount
-    def get_rowcount(self):
+    def rowcount(self):
         cursor = self.conn.execute('SELECT count(*) FROM '+ self.sql_table_name, )
         for row in cursor:
             total_rows=row[0]
