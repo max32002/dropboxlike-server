@@ -47,6 +47,7 @@ class MaxDropboxLikeWeb(object):
         logging.info("connecting to database %s ...", auth_db)
         client = sqlite3.connect(auth_db)
         schema_dbo = DboSchemaVersion(client)
+        schema_dbo.auto_upgrade()
         return client
 
     def run(self):

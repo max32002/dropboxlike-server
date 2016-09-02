@@ -20,6 +20,13 @@ CREATE TABLE IF NOT EXISTS `schema_version` (
     def __init__(self, db_conn):
         BaseTable.__init__(self, db_conn)
 
+
+    # auto upgrade old version database.
+    def auto_upgrade(self):
+        if self.get_rowcount()==0:
+            # empty database, insert current version code.
+            self.add(options.database_schema_version)
+
     # return:
     #       0: login fail.
     #       1: login successfully.
@@ -29,15 +36,13 @@ CREATE TABLE IF NOT EXISTS `schema_version` (
         out_dic['error_code'] = ''
         out_dic['rowcount'] = 0
         try:
-            # delete exist line_id
-            self.delete_line_id(line_id)
-
             # insert master
             sql = "INSERT INTO schema_version (version) VALUES (?);"
             cursor = self.conn.execute(sql, (code,))
 
             self.conn.commit()
             out_dic['lastrowid'] = cursor.lastrowid
+            result = 1
         except Exception as error:
             #except sqlite3.IntegrityError:
             #except sqlite3.OperationalError, msg:
@@ -47,5 +52,5 @@ CREATE TABLE IF NOT EXISTS `schema_version` (
             logging.info("sqlite error: %s", "{}".format(error))
             logging.info("sql: %s", "{}".format(sql))
             #raise
-        return result
+        return result, out_dic
 
