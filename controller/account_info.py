@@ -3,14 +3,10 @@ from tornado.options import options
 import logging
 from lib import utils
 
-class UsageHandler(BaseHandler):
-    '''!Usage API Controller'''
+class AccountInfoHandler(BaseHandler):
+    ''' Acount Info API Controller'''
 
     def get(self):
-        """metadata a path
-        @param path file path
-        @retval Object http response
-        """ 
         self.set_header('Content-Type','application/json')
 
         status_code = 200

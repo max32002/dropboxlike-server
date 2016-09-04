@@ -3,7 +3,7 @@ from controller.auth import AuthHandler
 from controller.files import FilesHandler
 from controller.files import ChunkUploadHandler
 from controller.files import CommitUploadHandler
-from controller.usage import UsageHandler
+from controller.account_info import AccountInfoHandler
 from controller.cursor import CursorHandler
 from controller.delta import DeltaHandler
 from controller.metadata import MetaHandler

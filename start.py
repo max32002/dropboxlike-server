@@ -12,7 +12,7 @@ if __name__ == "__main__":
         (r'/1/files(.*)', 'controller.FilesHandler'),
         (r'/1/chunked_upload(.*)', 'controller.ChunkUploadHandler'),
         (r'/1/commit_chunked_upload(.*)', 'controller.CommitUploadHandler'),
-        (r'/1/account/info', 'controller.UsageHandler'),
+        (r'/1/account/info', 'controller.AccountInfoHandler'),
         (r'/1/delta', 'controller.DeltaHandler'),
         (r'/1/delta/latest_cursor', 'controller.CursorHandler'),
         (r'/1/longpoll_delta', 'controller.DeltaHandler'),
