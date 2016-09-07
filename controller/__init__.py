@@ -13,4 +13,5 @@ from controller.filecopymove import FileMoveHandler
 from controller.filedelete import FileDeleteHandler
 from controller.filecreatefolder import FileCreateFolderHandler
 from controller.websocket import WebSocketHandler
+from controller.version import VersionHandler
 
