@@ -12,13 +12,19 @@ from tornado.escape import _unicode, native_str
 
 import settings
 from lib import libHttp
+import json
 
 def drive_register():
     api_reg_pattern = "1/drive/reg"
     api_hostname = "claim.dropboxlike.com"
+    #api_hostname = "127.0.0.1"
     api_url = "https://%s/%s" % (api_hostname,api_reg_pattern)
+
+    json_body = get_reg_json_body()
+    #print json_body
+
     http_obj = libHttp.Http()
-    (new_html_string, new_http_code) = http_obj.get_http_response_core(api_url)
+    (new_html_string, new_http_code) = http_obj.get_http_response_core(api_url, data=json_body)
     #print "return code:%d at packageId:%s" %(new_http_code, packageId)
     json_obj = None
     if new_http_code==200:
@@ -27,12 +33,36 @@ def drive_register():
         if not json_obj is None:
             #print str(json_obj)
             ret = True
-            print "json loaded. ^_^"
+            #print "json returned!"
+            show_pincode_to_user(json_obj)
             pass
     else:
         print "server return error code: %d" % (new_http_code,)
         # error
 
+def show_pincode_to_user(json_obj):
+    pinCode = ""
+    #print json_obj
+    pinCode = json_obj.get('pinCode','')
+    if len(pinCode) > 0:
+        print "Enter PinCode '%s' to your mobile phone in 2 minutes"\
+                    % pinCode
+
+
+
+def get_reg_json_body():
+    import socket
+    computerName = socket.gethostname()
+    localIp = socket.gethostbyname(socket.gethostname())
+#!/usr/bin/env python
+#encoding=utf-8
+
+    from uuid import getnode as get_mac
+    mac = get_mac()
+    mac_formated = ':'.join(("%012X" % mac)[i:i+2] for i in range(0, 12, 2))
+
+    data = {'title':computerName,'localIp':localIp, 'port':options.port, 'mac': mac_formated}
+    return json.dumps(data)
 
 def setup_db():
     auth_db = options.auth_db
