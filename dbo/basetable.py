@@ -171,6 +171,15 @@ class BaseTable():
         return (r[0] if r else None) if one else r
 
     # return:
+    #       all data in dictionary
+    def all(self):
+        sql_return_fields = self.sql_return_fields
+        if len(sql_return_fields) == 0:
+            sql_return_fields = "*"
+        cursor = self.conn.execute('SELECT '+ sql_return_fields +' FROM '+ self.sql_table_name, )
+        return self.get_dict_by_cursor(cursor)
+
+    # return:
     #       rowcount
     def rowcount(self):
         cursor = self.conn.execute('SELECT count(*) FROM '+ self.sql_table_name, )
