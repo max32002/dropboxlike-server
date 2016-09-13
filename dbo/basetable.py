@@ -87,7 +87,6 @@ class BaseTable():
     # input:
     #       pk_value: primary key value
     # return:
-    #       rowcount: total count
     #       recorset: dictionary
     #       error_code: error code
     #       error_message: error message
@@ -103,7 +102,6 @@ class BaseTable():
     #       pagesize: how many rows per page.
     #       server_host_name: server_host_name
     # return:
-    #       rowcount: total count
     #       recorset: dictionary
     #       error_code: error code
     #       error_message: error message
@@ -182,7 +180,10 @@ class BaseTable():
     # return:
     #       rowcount
     def rowcount(self):
-        cursor = self.conn.execute('SELECT count(*) FROM '+ self.sql_table_name, )
+        sql = 'SELECT count(*) FROM '+ self.sql_table_name
+        #print sql
+        cursor = self.conn.execute(sql)
+        total_rows = 0
         for row in cursor:
             total_rows=row[0]
         return total_rows
