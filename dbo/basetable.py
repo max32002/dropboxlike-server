@@ -174,7 +174,18 @@ class BaseTable():
         sql_return_fields = self.sql_return_fields
         if len(sql_return_fields) == 0:
             sql_return_fields = "*"
-        cursor = self.conn.execute('SELECT '+ sql_return_fields +' FROM '+ self.sql_table_name, )
+        sql = 'SELECT %s FROM %s '  % (sql_return_fields, self.sql_table_name)
+        cursor = self.conn.execute(sql, )
+        return self.get_dict_by_cursor(cursor)
+
+    # return:
+    #       first data in dictionary
+    def first(self):
+        sql_return_fields = self.sql_return_fields
+        if len(sql_return_fields) == 0:
+            sql_return_fields = "*"
+        sql = 'SELECT %s FROM %s LIMIT 1'  % (sql_return_fields, self.sql_table_name)
+        cursor = self.conn.execute(sql, )
         return self.get_dict_by_cursor(cursor)
 
     # return:

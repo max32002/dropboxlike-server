@@ -8,6 +8,14 @@ import time
 import signal
 from uuid import uuid4
 
+def rand_abc(desired_len):
+    sr = random.SystemRandom()
+    printable = ['A','B','C','E','F','H','M','N','P','R','T','W','X','Y']
+    printable_len = len(printable)
+    chars = [printable[sr.randint(0, printable_len - 1)] for _ in
+             range(desired_len)]
+    return ''.join(chars)
+
 def rand_number(desired_len):
     sr = random.SystemRandom()
     printable = string.digits
