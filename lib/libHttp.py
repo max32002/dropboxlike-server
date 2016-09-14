@@ -57,6 +57,9 @@ class Http:
                     print 'The server couldn\'t fulfill the request.'
                     print 'Error code: ', e.code
                 return_code = e.code
+
+            if read_body_flag:
+                return_html = e.read()
         else:
             # everything is fine
             return_code = response.getcode()
