@@ -50,7 +50,7 @@ class Http:
                 if hasattr(e, 'code'):
                     return_code = e.code
                 else:
-                    return_code = 500
+                    return_code = 0
             elif hasattr(e, 'code'):
                 #Only HTTPError has code attribute.
                 if is_debug:
@@ -58,8 +58,10 @@ class Http:
                     print 'Error code: ', e.code
                 return_code = e.code
 
-            if read_body_flag:
-                return_html = e.read()
+            #print "return_code:%d" % return_code
+            if return_code in range(200,500):
+                if read_body_flag:
+                    return_html = e.read()
         else:
             # everything is fine
             return_code = response.getcode()
