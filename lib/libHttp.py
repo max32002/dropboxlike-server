@@ -47,7 +47,10 @@ class Http:
                     print 'Reason: ', e.reason
                     print 'url: ', url
                 #return_html = e.reason
-                return_code = 500
+                if hasattr(e, 'code'):
+                    return_code = e.code
+                else:
+                    return_code = 500
             elif hasattr(e, 'code'):
                 #Only HTTPError has code attribute.
                 if is_debug:
