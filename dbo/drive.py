@@ -5,7 +5,7 @@ from dbo.basetable import BaseTable
 #data object for Drive
 #############################################################
 class DboDrive(BaseTable):
-    sql_return_fields = "sn,title,ownerUuid"
+    sql_return_fields = "sn,title,ownerUuid,drive_token,status"
     sql_table_name = "drive"
     sql_primary_key = "sn"
     sql_create_table = '''
@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS `drive` (
 `sn`   TEXT NOT NULL PRIMARY KEY,
 `title`   TEXT NULL,
 `ownerUuid`   TEXT NULL,
+`drive_token`   TEXT NULL,
 `status` INTEGER NULL,
 `createdTime` DATETIME NULL
 );
@@ -33,7 +34,7 @@ CREATE TABLE IF NOT EXISTS `drive` (
         out_dic['rowcount'] = 0
         try:
             # insert master
-            sql = "INSERT INTO schema_version (version) VALUES (?);"
+            sql = "INSERT INTO drive (sn,title,ownerUuid,drive_token,status) VALUES (?);"
             cursor = self.conn.execute(sql, (code,))
 
             self.conn.commit()
