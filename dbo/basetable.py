@@ -1,5 +1,6 @@
 ﻿import sqlite3
 #import logging
+import datetime
 
 #############################################################
 class DatabaseError:
@@ -164,29 +165,35 @@ class BaseTable():
     #       dictionary
     def get_dict_by_cursor( self, cursor):
         one=False
-        r = [dict((cursor.description[i][0], value) \
-               for i, value in enumerate(row)) for row in cursor.fetchall()]
+        r = [
+                dict((cursor.description[i][0], (value.strftime('%Y-%m-%d %H:%M:%S') if isinstance(value, datetime.datetime) else value)) for i, value in enumerate(row)) for row in cursor.fetchall()
+            ]
         return (r[0] if r else None) if one else r
+
 
     # return:
     #       all data in dictionary
-    def all(self):
+    def all(self, where="", order_by="", limit=None):
         sql_return_fields = self.sql_return_fields
         if len(sql_return_fields) == 0:
             sql_return_fields = "*"
-        sql = 'SELECT %s FROM %s '  % (sql_return_fields, self.sql_table_name)
+        if len(where) > 0:
+            where = " WHERE " + where
+        if len(order_by) > 0:
+            where = " ORDER BY " + order_by
+        if not limit is None:
+            limit = " LIMIT %d" % limit
+        sql = 'SELECT %s FROM %s%s%s'  % (sql_return_fields, self.sql_table_name, where, limit)
+        #print sql
         cursor = self.conn.execute(sql, )
         return self.get_dict_by_cursor(cursor)
 
+
     # return:
     #       first data in dictionary
-    def first(self):
-        sql_return_fields = self.sql_return_fields
-        if len(sql_return_fields) == 0:
-            sql_return_fields = "*"
-        sql = 'SELECT %s FROM %s LIMIT 1'  % (sql_return_fields, self.sql_table_name)
-        cursor = self.conn.execute(sql, )
-        return self.get_dict_by_cursor(cursor)
+    def first(self, where="",order_by=""):
+        return self.all(where,order_by,limit=1)
+
 
     # return:
     #       rowcount
