@@ -1,6 +1,7 @@
 ﻿import sqlite3
 #import logging
 import datetime
+import six
 
 #############################################################
 class DatabaseError:
@@ -84,17 +85,6 @@ class BaseTable():
             #result = error.args[0]
             raise
         return result
-
-    # input:
-    #       pk_value: primary key value
-    # return:
-    #       recorset: dictionary
-    #       error_code: error code
-    #       error_message: error message
-    def query_id( self, pk_value ):
-        in_dic = {}
-        in_dic[self.sql_primary_key] = pk_value
-        return self.query(in_dic)
 
         
     # input:
@@ -192,7 +182,21 @@ class BaseTable():
     # return:
     #       first data in dictionary
     def first(self, where="",order_by=""):
-        return self.all(where,order_by,limit=1)
+        ret = None
+        ret_array = self.all(where,order_by,limit=1)
+        if not ret_array is None:
+            if len(ret_array) > 0:
+                ret = ret_array[0]
+        return ret
+
+
+    # return:
+    #       first data in dictionary
+    def query_pk(self, data=None):
+        where = self.sql_primary_key + "='" + str(data) + "'"
+        if isinstance(data, six.integer_types):
+            where = self.sql_primary_key + "=" + str(data) + ""
+        return self.first(where=where)
 
 
     # return:

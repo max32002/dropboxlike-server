@@ -76,8 +76,12 @@ class BaseHandler(RequestHandler):
         return self.request.host.split(':')[0]
 
     def get_current_user(self):
-        x_token = self.request.headers.get("X-Auth-Token")
-        logging.info('token:%s ', x_token)
+        x_token = self.request.headers.get("Authorization")
+        #logging.info('token:%s ', x_token)
+        if not x_token is None:
+            if len(x_token) > 10 and x_token[:6]=="Token ":
+                # trim begin.
+                x_token = x_token[6:]
         x_user = self.db_account.check_token(x_token)
         return x_user
 

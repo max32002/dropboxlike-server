@@ -5,12 +5,13 @@ from dbo.basetable import BaseTable
 #data object for Drive
 #############################################################
 class DboPincode(BaseTable):
-    sql_return_fields = "pincode,sn,createdTime"
+    sql_return_fields = "pincode,password,sn,createdTime"
     sql_table_name = "pincode"
     sql_primary_key = "pincode"
     sql_create_table = '''
 CREATE TABLE IF NOT EXISTS `pincode` (
 `pincode`   TEXT NOT NULL PRIMARY KEY,
+`password` TEXT NOT NULL,
 `sn` TEXT NOT NULL,
 `createdTime` DATETIME NULL
 );
@@ -21,15 +22,15 @@ CREATE TABLE IF NOT EXISTS `pincode` (
     def __init__(self, db_conn):
         BaseTable.__init__(self, db_conn)
 
-    def add(self, pincode, sn):
+    def add(self, pincode, password, sn):
         result = 0
         out_dic = {}
         out_dic['error_code'] = ''
         out_dic['rowcount'] = 0
         try:
             # insert master
-            sql = "INSERT INTO pincode (pincode,sn,createdTime) VALUES (?,?,datetime('now'));"
-            cursor = self.conn.execute(sql, (pincode,sn,))
+            sql = "INSERT INTO pincode (pincode,password,sn,createdTime) VALUES (?,?,?,datetime('now'));"
+            cursor = self.conn.execute(sql, (pincode,password,sn))
 
             self.conn.commit()
             out_dic['lastrowid'] = cursor.lastrowid

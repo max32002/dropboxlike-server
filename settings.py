@@ -9,8 +9,8 @@ import os
 
 
 def define_app_options():
-    define('debug', False)
-    #define('debug', True)
+    #define('debug', False)
+    define('debug', True)
 
     define('log_level', default=logging.INFO)
     define('log_backup_path', default=tempfile.gettempdir())
