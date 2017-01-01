@@ -32,10 +32,11 @@ def define_app_options():
     certificate_path = os.path.join(app_root, 'certs')
     define('certificate_path', default=certificate_path)
 
-    auth_db = os.path.join(options.storage_access_point, 'dropboxlike.db')
-    define('auth_db', default=auth_db)
+    sys_db = os.path.join(options.storage_access_point, 'dropboxlike.db')
+    define('sys_db', default=sys_db)
 
     define('ignore_token_check_prefix', default=['/1/auth/','/version'])
+    define('claim_uri_prefix', default=['/1/drive/claim'])
 
     conf_filepath = os.path.join(app_root, 'server.conf')
     #print "config filepath: %s" % conf_filepath
@@ -58,9 +59,6 @@ def define_app_options():
     if not os.path.exists(options.storage_access_point):
         os.makedirs(options.storage_access_point)
 
-    auth_db = os.path.join(options.storage_access_point, 'dropboxlike.db')
-    define('auth_db', default=auth_db)
-    #print "auth_db filepath: %s" % auth_db
 
     
 

@@ -9,24 +9,29 @@ class AuthHandler(BaseHandler):
         self.set_header('Content-Type','application/json')
         auth_db = self.db_account
 
-        logging.info('body:%s' % (self.request.body))
+        #logging.info('body:%s' % (self.request.body))
         _body = None
+        is_pass_check = False
         try :
             _body = json.loads(self.request.body)
+            is_pass_check = True
         except Exception:
             #raise BadRequestError('Wrong JSON', 3009)
             pass
 
-        is_pass_check = False
-
-        if _body:
-            account = None
-            password = None
-            try :
-                account = _body['account']
-                password = _body['password']
-            except Exception:
-                pass
+        account = None
+        password = None
+        if is_pass_check:
+            is_pass_check = False
+            if _body:
+                try :
+                    account = _body['account']
+                    password = _body['password']
+                    is_pass_check = True
+                except Exception:
+                    pass
+                    
+        if is_pass_check:
             if account is not None and password is not None:
                 is_pass_check = auth_db.login(account, password)
 

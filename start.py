@@ -1,20 +1,14 @@
 #!/usr/bin/env python
 #encoding=utf-8
 import os
-
-from maxdropboxlike import MaxDropboxLikeWeb
-import maxdriveconfig
+from dropboxlike import MaxDropboxLikeWeb
 
 if __name__ == "__main__":
 #        (r'/', 'controller.HelloHandler'),
-    ret = maxdriveconfig.set_config_file()
-    if ret:
-        settings.define_app_options()
-        setup_db()
-
     routes = [
         (r'/version', 'controller.VersionHandler'),
         (r'/1/auth/token', 'controller.AuthHandler'),
+        (r'/1/drive/claim', 'controller.DriveClaimHandler'),
         (r'/1/files_put(.*)', 'controller.FilesHandler'),
         (r'/1/files(.*)', 'controller.FilesHandler'),
         (r'/1/chunked_upload(.*)', 'controller.ChunkUploadHandler'),
@@ -34,6 +28,5 @@ if __name__ == "__main__":
 
     template_path = os.path.abspath(__file__ + '/../templates')
     server = MaxDropboxLikeWeb(routes,template_path)
-
     
     server.run()

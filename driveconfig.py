@@ -194,10 +194,9 @@ def prepare_reg_json_body():
     return data
 
 
-def setup_db():
-    auth_db = options.auth_db
-    #logging.info("connecting to database %s ...", auth_db)
-    client = sqlite3.connect(auth_db)
+def generate_pincode():
+    ret = False
+    client = sqlite3.connect(options.sys_db)
     drive_dbo = None
     pincode_dbo = None
 
@@ -239,6 +238,7 @@ def setup_db():
 
         else:
             # drive registered.
+            ret = True
             pass
     except sqlite3.OperationalError as error:
         print("{}.  Please try use add sudo to retry.".format(error))
@@ -247,6 +247,7 @@ def setup_db():
         print("{}".format(error))
         raise
 
+    return ret
 
 
 def read_properties(filename, delimiter=':'):
@@ -341,10 +342,12 @@ def load_config_file():
 
 
 def driverconfig():
+    ret = False
     if load_config_file():
         # reload settings.
         settings.define_app_options()
-        setup_db()
+        ret = generate_pincode()
+    return ret
 
 if __name__ == "__main__":
     driverconfig()

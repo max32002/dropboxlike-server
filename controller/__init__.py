@@ -1,4 +1,5 @@
 from controller.hello import HelloHandler
+from controller.drive import DriveClaimHandler
 from controller.auth import AuthHandler
 from controller.files import FilesHandler
 from controller.files import ChunkUploadHandler

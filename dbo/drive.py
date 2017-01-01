@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS `drive` (
             out_dic['error_code'] = error.args[0]
             out_dic['error_message'] = "{}".format(error)
             logging.info("sqlite error: %s", "{}".format(error))
-            logging.info("sql: %s", "{}".format(sql))
+            #logging.info("sql: %s", "{}".format(sql))
             #raise
         return result, out_dic
 

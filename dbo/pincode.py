@@ -46,3 +46,7 @@ CREATE TABLE IF NOT EXISTS `pincode` (
             #raise
         return result, out_dic
 
+
+    def match(self, pincode, password):
+        where = "pincode='" + pincode.replace("'", "''") + "' and password='" + pincode.replace("'", "''") + "'"
+        return self.first(where=where)

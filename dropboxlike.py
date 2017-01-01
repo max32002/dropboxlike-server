@@ -10,17 +10,20 @@ from tornado.ioloop import IOLoop
 from tornado.options import options, parse_command_line
 from jinja2 import ChoiceLoader, FileSystemLoader
 
-import settings
 from lib.template import JinjaLoader
 from lib.misc import install_tornado_shutdown_handler
 
 import sqlite3
 from dbo.schema_version import DboSchemaVersion
 
+#import settings
+import driveconfig
 
 class MaxDropboxLikeWeb(object):
     def get_settings(self, proj_template_path, proj_static_paths):
-        settings.define_app_options()
+        #settings.define_app_options()
+        claimed = driveconfig.driverconfig()
+
         parse_command_line(final=True)
 
         self_dir_path = os.path.abspath(os.path.dirname(__file__))
@@ -32,6 +35,7 @@ class MaxDropboxLikeWeb(object):
         return {
             'template_loader': JinjaLoader(loader=loader, auto_escape=False),
             'debug': options.debug,
+            'claimed': claimed
         }
 
     def __init__(self, routes, template_path, proj_static_paths=[],
@@ -40,19 +44,19 @@ class MaxDropboxLikeWeb(object):
         the_settings.update(more_settings)
 
         self.app = Application(routes, **the_settings)
-        self.app.db = self.setup_db()
+        self.app.sql_client = self.setup_db()
+        self.app.claimed = the_settings['claimed']
 
     def setup_db(self):
-        auth_db = options.auth_db
-        #logging.info("connecting to database %s ...", auth_db)
-        client = sqlite3.connect(auth_db)
+        #logging.info("connecting to database %s ...", options.sys_db)
+        client = sqlite3.connect(options.sys_db)
         schema_dbo = DboSchemaVersion(client)
         schema_dbo.auto_upgrade()
         return client
 
     def run(self):
-        logging.info('Runing at port %s in %s mode',
-                     options.port, 'debug' if options.debug else 'production')
+        #logging.info('Runing at port %s in %s mode', options.port, 'debug' if options.debug else 'production')
+        logging.info('Runing at port %s.', options.port)
         server = HTTPServer(self.app, xheaders=True, ssl_options = {
     "certfile": os.path.join(options.certificate_path, "server.crt"),
     "keyfile": os.path.join(options.certificate_path, "server.key"),
@@ -85,6 +89,7 @@ class MaxDropboxLikeWeb(object):
             logging.info('Good to go!')
 
             IOLoop.instance().start()
-            logging.info('Exiting...waiting for background jobs done...')
-            logging.info('Done. Bye.')
+            #logging.info('Exiting...waiting for background jobs done...')
+            #logging.info('Done. Bye.')
+            logging.info('Bye.')
 
