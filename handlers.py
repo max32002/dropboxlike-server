@@ -33,11 +33,6 @@ class BaseHandler(RequestHandler):
     metadata_manager = None
     thumbnail_manager = None
 
-    def has_permission(self, path):
-        if path  == '/users' or path.startswith('/user/'):
-            return self.current_user and self.r % 100 == 0
-        return True
-
     def prepare(self):
         uri = self.request.uri
         path = self.request.path
@@ -46,7 +41,6 @@ class BaseHandler(RequestHandler):
         logging.info('user:%s is accessing %s', user, uri)
 
         error_code = 0
-
         if error_code == 0:
             if not self.application.claimed:
                 # only able to access claim API.
@@ -57,7 +51,6 @@ class BaseHandler(RequestHandler):
                 if not is_claim_uri:
                     # block all access.
                     error_code = 401
-
 
         if error_code == 0:
             if user is None and not self.allow_anony:
@@ -78,11 +71,6 @@ class BaseHandler(RequestHandler):
                 # token valid.
                 user_home_poolid = None
                 self.user_home = '%s/storagepool/%s' % (options.storage_access_point,self.current_user['poolid'])
-
-        if error_code == 0:
-            if not self.allow_anony and not self.has_permission(path):
-                error_code = 403
-                #raise HTTPError(403)
         
         if error_code == 0:
             pass
@@ -255,9 +243,6 @@ class BaseHandler(RequestHandler):
             my_dbo = DboDelta(client)
         return my_dbo
 
-    @property
-    def r(self):
-        return self.current_user['role']
 
 #################################################################
 ## User Administration

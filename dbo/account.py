@@ -74,7 +74,7 @@ CREATE INDEX IF NOT EXISTS account_login ON account(account,password);
         out_dic = None
         for row in cursor:
             result=1
-            sql = 'SELECT '+ self.sql_return_fields +',pool.poolid FROM '+ self.sql_table_name +' INNER JOIN pool ON pool.ownerid = account.account WHERE account.account=? LIMIT 1'
+            sql = 'SELECT '+ self.sql_return_fields +',pool.poolid, \'' + token_id + '\' as token FROM '+ self.sql_table_name +' INNER JOIN pool ON pool.ownerid = account.account WHERE account.account=? LIMIT 1'
             cursor = self.conn.execute(sql, (row[0],))
             if not cursor is None:
                 out_dic = self.get_dict_by_cursor(cursor)[0]
