@@ -72,6 +72,16 @@ class BaseTable():
         return result
 
     # return:
+    #       True: exist.
+    #       False: not exist.
+    def field_value_exist( self, field_name, field_value):
+        cursor = self.conn.execute('SELECT '+ self.sql_primary_key +' FROM '+ self.sql_table_name +' WHERE '+ field_name +'=? LIMIT 1', (field_value,))
+        result = False
+        for row in cursor:
+            result = True
+        return result
+
+    # return:
     #       True: delete successfully.
     #       False: fail.
     def pk_delete( self, pk_value):
