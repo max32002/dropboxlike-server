@@ -82,6 +82,9 @@ class BaseHandler(RequestHandler):
         return self.request.host.split(':')[0]
 
     def get_current_user(self):
+        #[TODO]
+        # password change,
+        # token expired.
         x_token = self.request.headers.get("Authorization")
         #logging.info('token:%s ', x_token)
         if not x_token is None:

@@ -62,24 +62,24 @@ class BaseTable():
         self.conn.commit()
 
     # return:
-    #       0: not exist.
-    #       1: exist.
+    #       True: exist.
+    #       False: not exist.
     def pk_exist( self, pk_value):
         cursor = self.conn.execute('SELECT '+ self.sql_primary_key +' FROM '+ self.sql_table_name +' WHERE '+ self.sql_primary_key +'=? LIMIT 1', (pk_value,))
-        result = 0
+        result = False
         for row in cursor:
-            result = 1
+            result = True
         return result
 
     # return:
-    #       1: delete successfully.
-    #       0: fail.
+    #       True: delete successfully.
+    #       False: fail.
     def pk_delete( self, pk_value):
-        result = 0
+        result = False
         try:
             self.conn.execute('DELETE FROM '+ self.sql_table_name +' WHERE '+ self.sql_primary_key +'=?;', (pk_value,))
             self.conn.commit()
-            result = 1
+            result = True
         except Exception as error:
             print("Error: {}".format(error))
             #result = error.args[0]
