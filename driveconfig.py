@@ -17,10 +17,14 @@ from lib import libWSClient
 from lib import misc
 import json
 
+# for terminate app.
+import sys
+
 # for short-pincode & changeable & GUI support sultion.
 DEFAULT_REG_WAIT_MINUTES = 2
 
 def drive_register(drive_dbo, pincode_dbo):
+    ret = False
     # method 1: http get solution.
     http_code,json_obj = call_drive_register_api()
     # method 2: websocket solution.
@@ -30,25 +34,28 @@ def drive_register(drive_dbo, pincode_dbo):
             #print "json:", json_obj
             pinCode = json_obj.get('pinCode','')
             password = misc.rand_number(6)
-            sn = json_obj.get('sn','')
-            if len(sn) > 0:
+            #sn = misc.rand_number(16)
+            #if len(sn) > 0:
                 # for short-pincode & changeable & GUI support sultion.
                 #display_pincode_to_user(pinCode, DEFAULT_REG_WAIT_MINUTES)
-                display_pincode_to_user(pinCode, password=password)
-                # clear whole table.
-                #drive_dbo.empty()
-                pincode_dbo.empty()
-                result, save_dic = pincode_dbo.add(pinCode,password,sn)
 
-                # auto pooling, after get pincode.
-                # for short-pincode & changeable & GUI support sultion.
-                #drive_query(drive_dbo, pincode_dbo, pinCode, sn, pooling_flag=True)
+            display_pincode_to_user(pinCode, password=password)
+            # clear whole table.
+            #drive_dbo.empty()
+            pincode_dbo.empty()
+            ret, save_dic = pincode_dbo.add(pinCode,password)
+
+            # auto pooling, after get pincode.
+            # for short-pincode & changeable & GUI support sultion.
+            #drive_query(drive_dbo, pincode_dbo, pinCode, sn, pooling_flag=True)
         else:
             print "unknow error, return json empty!"
             pass
     else:
         #print "server is not able be connected or cancel by user"
         pass
+
+    return ret
 
 # solution 2, websocket
 def call_drive_register_api_ws():
@@ -211,9 +218,13 @@ def generate_pincode():
         if drive_dbo.rowcount() == 0:
             # drive empty.
             try:
+                error_msg = ""
+                is_get_pincode = False
                 if pincode_dbo.rowcount() == 0:
                     # call drive register process - step 1.
-                    drive_register(drive_dbo, pincode_dbo)
+                    is_get_pincode = drive_register(drive_dbo, pincode_dbo)
+                    if not is_get_pincode:
+                        error_msg = "Can't connect to dropboxlike register server, please try again later"
                 else:
                     # pincode/sn exist.
                     # call drive register process - step 2.
@@ -225,9 +236,15 @@ def generate_pincode():
                         # start to query pincode.
                         #drive_query(drive_dbo, pincode_dbo, pincode_dict.get('pincode', ''),pincode_dict.get('sn', ''))
                         display_pincode_to_user(pincode_dict.get('pincode', ''), password=pincode_dict.get('password', ''))
+                        is_get_pincode = True
                     else:
                         # unknown error...
+                        error_msg = "Can't get pincode from database, please delete dropboxlike.db than launch application agage."
                         pass
+
+                if not is_get_pincode:
+                    print error_msg
+                    sys.exit()
                     
             except sqlite3.OperationalError as error:
                 print("{}.  Please try use add sudo to retry.".format(error))
