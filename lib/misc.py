@@ -23,7 +23,6 @@ def rand_number(desired_len):
     chars = [printable[sr.randint(0, printable_len - 1)] for _ in
              range(desired_len)]
     return ''.join(chars)
-    
 
 def rand_string(desired_len):
     sr = random.SystemRandom()
@@ -33,13 +32,11 @@ def rand_string(desired_len):
              range(desired_len)]
     return ''.join(chars)
 
-
 def uuid_rand():
     '''
     prefer to rand_string
     '''
     return uuid4().hex
-
 
 def sha1_hash(value):
     sha1 = hashlib.sha1()
@@ -47,6 +44,11 @@ def sha1_hash(value):
     digest = sha1.hexdigest()
     return digest
 
+def md5_hash(value):
+    data = hashlib.md5()
+    data.update(value)
+    digest = data.hexdigest()
+    return digest
 
 def install_tornado_shutdown_handler(ioloop, server, logger=None):
     # see https://gist.github.com/mywaiting/4643396 for more detail
@@ -63,8 +65,7 @@ def install_tornado_shutdown_handler(ioloop, server, logger=None):
         server.stop()
 
         MAX_WAIT_SECONDS_BEFORE_SHUTDOWN = 3
-        logger.info("Will shutdown in %s seconds",
-                    MAX_WAIT_SECONDS_BEFORE_SHUTDOWN)
+        #logger.info("Will shutdown in %s seconds", MAX_WAIT_SECONDS_BEFORE_SHUTDOWN)
         deadline = time.time() + MAX_WAIT_SECONDS_BEFORE_SHUTDOWN
 
         def stop_loop():
@@ -74,7 +75,7 @@ def install_tornado_shutdown_handler(ioloop, server, logger=None):
                 logger.debug("Waiting for callbacks and timeouts in IOLoop...")
             else:
                 ioloop.stop()
-                logger.info("Server is shutdown")
+                #logger.info("Server is shutdown")
 
         stop_loop()
 

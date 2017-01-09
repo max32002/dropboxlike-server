@@ -8,7 +8,7 @@ if __name__ == "__main__":
     routes = [
         (r'/version', 'controller.VersionHandler'),
         (r'/1/auth/token', 'controller.AuthHandler'),
-        (r'/1/drive/claim', 'controller.DriveClaimHandler'),
+        (r'/1/drive/claim_auth', 'controller.DriveClaimAuthHandler'),
         (r'/1/files_put(.*)', 'controller.FilesHandler'),
         (r'/1/files(.*)', 'controller.FilesHandler'),
         (r'/1/chunked_upload(.*)', 'controller.ChunkUploadHandler'),

@@ -54,14 +54,16 @@ class BaseHandler(RequestHandler):
 
         if error_code == 0:
             if user is None and not self.allow_anony:
-                is_auth_uri = False
+                is_ignore_uri = False
                 for virtual_folder in options.ignore_token_check_prefix:
                     if path.startswith(virtual_folder):
-                        is_auth_uri = True
+                        is_ignore_uri = True
+                for virtual_folder in options.claim_uri_prefix:
+                    if path.startswith(virtual_folder):
+                        is_ignore_uri = True
 
-                if not is_auth_uri:
+                if not is_ignore_uri:
                     error_code = 401
-                    #raise HTTPError(401)
                     #raise HTTPError(403)
                     #return
                 else:

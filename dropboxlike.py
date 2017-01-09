@@ -56,7 +56,7 @@ class MaxDropboxLikeWeb(object):
 
     def run(self):
         #logging.info('Runing at port %s in %s mode', options.port, 'debug' if options.debug else 'production')
-        logging.info('Runing at port %s.', options.port)
+        logging.info('Runing at port %s, press Ctrl+C to stop dropboxlike server.', options.port)
         server = HTTPServer(self.app, xheaders=True, ssl_options = {
     "certfile": os.path.join(options.certificate_path, "server.crt"),
     "keyfile": os.path.join(options.certificate_path, "server.key"),

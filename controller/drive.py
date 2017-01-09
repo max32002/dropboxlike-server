@@ -2,12 +2,16 @@ from handlers import BaseHandler
 import logging
 import json
 from lib import utils
+from dbo.drive import DboDrive
+from dbo.pincode import DboPincode
+from dbo.pincode import DboPincodeLog
 
-class DriveClaimHandler(BaseHandler):
+class DriveClaimAuthHandler(BaseHandler):
     def post(self):
         self.set_header('Content-Type','application/json')
         drive_dbo = DboDrive(self.application.sql_client)
-        pincode_dbo = DboDrive(self.application.sql_client)
+        pincode_dbo = DboPincode(self.application.sql_client)
+        pincode_log_dbo = DboPincodeLog(self.application.sql_client)
 
         errorMessage = ""
         errorCode = 0
@@ -19,7 +23,7 @@ class DriveClaimHandler(BaseHandler):
             is_pass_check = True
         else:
             errorMessage = "database return null"
-            errorCode = 101
+            errorCode = 1001
             is_pass_check = False
 
         if is_pass_check:
@@ -27,9 +31,8 @@ class DriveClaimHandler(BaseHandler):
                 is_pass_check = True
             else:
                 errorMessage = "database return null"
-                errorCode = 101
+                errorCode = 1002
                 is_pass_check = False
-
 
         _body = None
         if is_pass_check:
@@ -40,52 +43,77 @@ class DriveClaimHandler(BaseHandler):
             except Exception:
                 #raise BadRequestError('Wrong JSON', 3009)
                 errorMessage = "wrong json format"
-                errorCode = 102
+                errorCode = 1003
                 pass
 
-        pincode = None
+        pinCode = None
         password = None
-        poken = None
+        request_id = None
+        client_md5 = None
         if is_pass_check:
             is_pass_check = False
             if _body:
                 try :
-                    pincode = _body['pincode']
-                    password = _body['password']
-                    poken = _body['poken']
+                    if 'pinCode' in _body:
+                        pinCode = _body['pinCode'][:10]
+                    if 'password' in _body:
+                        password = _body['password'][:20]
+                    if 'request_id' in _body:
+                        request_id = _body['request_id']
+                    if 'client_md5' in _body:
+                        client_md5 = _body['client_md5'][:64]
                     is_pass_check = True
                 except Exception:
                     errorMessage = "parse json fail"
-                    errorCode = 103
+                    errorCode = 1004
                     pass
 
         if is_pass_check:
-            if pincode is None:
-                errorMessage = "pincode empty"
-                errorCode = 104
+            if pinCode is None:
+                errorMessage = "PinCode empty"
+                errorCode = 1010
                 is_pass_check = False
             if password is None:
-                errorMessage = "password empty"
-                errorCode = 104
+                errorMessage = "Password empty"
+                errorCode = 1011
                 is_pass_check = False
-            if poken is None:
-                errorMessage = "poken empty"
-                errorCode = 104
+            if request_id is None:
+                errorMessage = "request_id empty"
+                errorCode = 1012
+                is_pass_check = False
+            if client_md5 is None:
+                errorMessage = "client_md5 empty"
+                errorCode = 1013
                 is_pass_check = False
 
         if is_pass_check:
             # [TODO]: Password brute-force attack.
             x_real_ip = self.request.headers.get("X-Real-IP")
             remote_ip = self.request.remote_ip if not x_real_ip else x_real_ip
+            log_ret, log_dict = pincode_log_dbo.add(pinCode,password,request_id,client_md5,remote_ip)
+            #print "log_ret", log_ret
+            if not log_ret:
+                errorMessage = "claim_auth log fail"
+                errorCode = 1020
+                is_pass_check = False
+                # insert log fail.
 
             # check pincode & password
             
             #logging.info('token:%s, account:%s, password:%s, remote_ip:%s' % (token, account, password, remote_ip))
-            # check poken on public server.
 
-            self.set_header('X-Subject-Token',token)
-            auth_db.save_token(token,account,remote_ip)
-            self.render('auth.json', token=token, account=account)
+        # check poken on public server.
+        if is_pass_check:
+            match_result = pincode_dbo.match(pinCode,password)
+            print "match_result", match_result
+            if match_result is None:
+                errorMessage = "Password not match"
+                errorCode = 1021
+                is_pass_check = False
+            
+        if is_pass_check:
+            # every thing is correct
+            pass
         else:
             self.set_status(400)
             self.write(dict(error_msg=errorMessage,error_code=errorCode))
