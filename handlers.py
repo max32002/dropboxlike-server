@@ -72,6 +72,7 @@ class BaseHandler(RequestHandler):
             else:
                 # token valid.
                 user_home_poolid = None
+                # this is for One server with Many Owner(different home folder).
                 self.user_home = '%s/storagepool/%s' % (options.storage_access_point,self.current_user['poolid'])
         
         if error_code == 0:
@@ -93,7 +94,12 @@ class BaseHandler(RequestHandler):
             if len(x_token) > 10 and x_token[:6]=="Token ":
                 # trim begin.
                 x_token = x_token[6:]
-        x_user = self.db_account.check_token(x_token)
+        x_user = None
+        user_account = self.db_account.check_token(x_token)
+        if not user_account is None:
+            x_user = self.db_account.get_pool_list(user_account)
+            if not x_user is None:
+                x_user['token'] = x_token
         return x_user
 
     def get_share_poolid(self, path):

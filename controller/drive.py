@@ -2,6 +2,7 @@ from handlers import BaseHandler
 import logging
 import json
 from lib import utils
+from lib import misc
 from dbo.drive import DboDrive
 from dbo.pincode import DboPincode
 from dbo.pincode import DboPincodeLog
@@ -12,6 +13,7 @@ class DriveClaimAuthHandler(BaseHandler):
         drive_dbo = DboDrive(self.application.sql_client)
         pincode_dbo = DboPincode(self.application.sql_client)
         pincode_log_dbo = DboPincodeLog(self.application.sql_client)
+        auth_dbo = self.db_account
 
         errorMessage = ""
         errorCode = 0
@@ -115,7 +117,20 @@ class DriveClaimAuthHandler(BaseHandler):
         if is_pass_check:
             # last step
             sn = pincode_dict['sn']
-            print "sn", sn
+            #print "sn", sn
+            is_owner=1
+            ret,account,password = auth_dbo.new_user(is_owner)
+            #print "new user:",ret,account,password
+            account_info = "%s,%s" % (account,password)
+            account_info_encrypt = misc.aes_encrypt(client_md5,account_info)
+            #print "account_info:",account_info
+            #print "account_info_encrypt:",account_info_encrypt
+
+            confirm_result = False
+            if not confirm_result:
+                # delete create new user.
+                auth_dbo.pk_delete(account)
+
             
         if is_pass_check:
             # every thing is correct

@@ -5,21 +5,19 @@ import logging
 #data object for Account
 #############################################################
 class DboAccount(BaseTable):
-    sql_return_fields = "account.account,account.accountname,account.email,account.owner"
-    sql_table_name = "account"
+    sql_return_fields = "account,password,title,is_owner"
+    sql_table_name = "users"
     sql_primary_key = "account"
     sql_create_table = '''
-CREATE TABLE IF NOT EXISTS `account` (
-    `account`   TEXT NOT NULL,
-    `accountname`   TEXT NULL,
+CREATE TABLE IF NOT EXISTS `users` (
+    `account`   TEXT NOT NULL PRIMARY KEY,
     `password`  TEXT NOT NULL,
-    `email` TEXT,
-    `owner` INTEGER,
-    PRIMARY KEY(account)
+    `title`   TEXT NULL,
+    `is_owner` INTEGER,
+    `createdTime` DATETIME NULL
 );
     '''
     sql_create_index = ['''
-CREATE INDEX IF NOT EXISTS account_login ON account(account,password);
     ''']
     dbo_token = None
 
@@ -27,72 +25,84 @@ CREATE INDEX IF NOT EXISTS account_login ON account(account,password);
         BaseTable.__init__(self, db_conn)
         self.dbo_token = DboToken(db_conn)
 
+
     # return:
-    #       1: insert successfully.
-    #    else: database error code.
-    def save( self, admin_id, admin_name, admin_pwd, is_owner ):
-        out_dic = {}
-        out_dic['error_code'] = ''
-        out_dic['rowcount'] = 0
+    #       True: insert successfully.
+    #       False: fail
+    def new_user( self, is_owner ):
+        account = utils.get_token()
+        while self.pk_exist(account):
+            account = utils.get_token()
+        password = utils.get_token()
+        ret = self.save(account, password, is_owner)
+        return ret, account, password
 
-        result = 0
+
+    # return:
+    #       True: insert successfully.
+    #       False: fail
+    def save( self, account, password, is_owner ):
+        result = False
         try:
-            # try to get not used uuid
-            # // do something here.
-
             # start to insert.
-            self.conn.execute("INSERT INTO account (account,accountname,password,is_owner) VALUES (?,?,?,?)", (admin_id, admin_name, admin_pwd, is_owner))
+            sql = "INSERT INTO users(account,password,is_owner) VALUES (?,?,?)"
+            self.conn.execute(sql, (account, password, is_owner,))
             self.conn.commit()
-            result = 1
+            result = True
         except Exception as error:
             #except sqlite3.IntegrityError:
             #except sqlite3.OperationalError, msg:
             #print("Error: {}".format(error))
-            out_dic['error_code'] = error.args[0]
-            out_dic['error_message'] = "{}".format(error)
             #raise
+            pass
         return result
 
 
     # return:
-    #       0: login fail.
-    #       1: login successfully.
-    def login( self, admin_id, admin_pwd ):
-        cursor = self.conn.execute('SELECT account FROM account WHERE account=? and password=? LIMIT 1', (admin_id, admin_pwd))
-        result=0
+    #       False: login fail.
+    #       True: login successfully.
+    def login( self, account, password ):
+        sql = 'SELECT account FROM account WHERE account=? and password=? LIMIT 1'
+        cursor = self.conn.execute(sql, (account, password,))
+        ret=False
         for row in cursor:
-            result=1
-        return result
+            ret=True
+        return ret
 
 
     # return:
     #    None: token not exist.
     #    account info dict: token valid.
     def check_token( self, token_id):
+        ret = None
         cursor = self.conn.execute('SELECT account FROM token WHERE token=? LIMIT 1', (token_id,))
-        result=0
+        for row in cursor:
+            ret=row[0]
+        return ret
+
+    def get_pool_list( self, account):
         out_dic = None
         for row in cursor:
-            result=1
-            sql = 'SELECT '+ self.sql_return_fields +',pool.poolid, \'' + token_id + '\' as token FROM '+ self.sql_table_name +' INNER JOIN pool ON pool.ownerid = account.account WHERE account.account=? LIMIT 1'
-            cursor = self.conn.execute(sql, (row[0],))
+            sql = 'SELECT * FROM pool WHERE ownerid = ?'
+            cursor = self.conn.execute(sql, (account,))
             if not cursor is None:
-                out_dic = self.get_dict_by_cursor(cursor)[0]
+                out_dic = self.get_dict_by_cursor(cursor)
         return out_dic 
 
 
     # return:
     #       0: insert successfully.
     #    else: database error code.
-    def save_token( self, token_id, admin_id, ip_address):
-        result = 0
+    def save_token( self, token_id, account, ip_address):
+        result = False
         out_dic = {}
         out_dic['error_code'] = ''
         out_dic['rowcount'] = 0
         try:
             sql = "INSERT INTO token (token, account, ip_address, create_datetime) VALUES (?, ?, ?, ?)"
-            self.conn.execute(sql, (token_id, admin_id, ip_address, utils.get_timestamp(),))
+            self.conn.execute(sql, (token_id, account, ip_address, utils.get_timestamp(),))
             self.conn.commit()
+            result = True
         except Exception as error:
             #except sqlite3.IntegrityError:
             #except sqlite3.OperationalError, msg:
@@ -154,7 +164,7 @@ CREATE INDEX IF NOT EXISTS account_login ON account(account,password);
 #data object for token
 #############################################################
 class DboToken(BaseTable):
-    sql_return_fields = "token.token,token.account,token.ip_address,token.create_datetime"
+    sql_return_fields = "token.token,token.account,token.ip_address,token.createdTime"
     sql_table_name = "token"
     sql_primary_key = "token"
     sql_create_table = '''
@@ -162,7 +172,7 @@ CREATE TABLE IF NOT EXISTS `token` (
     `token` TEXT NOT NULL,
     `account`   TEXT NOT NULL,
     `ip_address`    TEXT NULL,
-    `create_datetime`   INTEGER,
+    `createdTime` DATETIME NULL,
     PRIMARY KEY(token)
 );
     '''

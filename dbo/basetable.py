@@ -3,27 +3,6 @@
 import datetime
 import six
 
-#############################################################
-class DatabaseError:
-    @classmethod
-    def INSERT_INPUT_EMPTY(cls):
-        return "INSERT_INPUT_EMPTY"
-
-    def UPDATE_INPUT_EMPTY(cls):
-        return "UPDATE_INPUT_EMPTY"
-
-    def DELETE_INPUT_EMPTY(cls):
-        return "DELETE_INPUT_EMPTY"
-
-    def QUERY_INPUT_EMPTY(cls):
-        return "QUERY_INPUT_EMPTY"
-
-    def DATABASE_IS_LOCKED(cls):
-        return "database is locked"
-
-    def LOCAL_METADATA_PARENT_NOT_EXIST(cls):
-        return 'parent node not exist.'
-
 #data object for Debug
 #############################################################
 class BaseTable():
@@ -96,6 +75,36 @@ class BaseTable():
             raise
         return result
 
+
+    # return:
+    #       first data in dictionary
+    def pk_query(self, data=None):
+        where = self.sql_primary_key + "='" + str(data) + "'"
+        if isinstance(data, six.integer_types):
+            where = self.sql_primary_key + "=" + str(data) + ""
+        return self.first(where=where)
+
+
+    # return:
+    def pk_save(self):
+        out_dic = {}
+        out_dic['error_code'] = ''
+        out_dic['rowcount'] = 0
+        try:
+            sql = "INSERT INTO "+ self.sql_table_name +" ("+self.sql_primary_key+") VALUES (null)"
+            cursor = self.conn.execute(sql)
+            self.conn.commit()
+            out_dic['lastrowid'] = cursor.lastrowid
+        except Exception as error:
+            #except sqlite3.IntegrityError:
+            #except sqlite3.OperationalError, msg:
+            #print("Error: {}".format(error))
+            out_dic['error_code'] = error.args[0]
+            out_dic['error_message'] = "{}".format(error)
+            logging.error("sqlite error: %s", "{}".format(error))
+            #raise
+        return out_dic
+
         
     # input:
     #       order_by: how to sort output field.
@@ -157,7 +166,7 @@ class BaseTable():
             #print("Error: {}".format(error))
             out_dic['error_code'] = error.args[0]
             out_dic['error_message'] = "{}".format(error)
-            #logging.info("sqlite error: %s", "{}".format(error))
+            #logging.error("sqlite error: %s", "{}".format(error))
         return out_dic
 
 
@@ -201,15 +210,6 @@ class BaseTable():
 
 
     # return:
-    #       first data in dictionary
-    def query_pk(self, data=None):
-        where = self.sql_primary_key + "='" + str(data) + "'"
-        if isinstance(data, six.integer_types):
-            where = self.sql_primary_key + "=" + str(data) + ""
-        return self.first(where=where)
-
-
-    # return:
     #       rowcount
     def rowcount(self):
         sql = 'SELECT count(*) FROM '+ self.sql_table_name
@@ -220,22 +220,3 @@ class BaseTable():
             total_rows=row[0]
         return total_rows
 
-    # return:
-    def save(self):
-        out_dic = {}
-        out_dic['error_code'] = ''
-        out_dic['rowcount'] = 0
-        try:
-            sql = "INSERT INTO "+ self.sql_table_name +" ("+self.sql_primary_key+") VALUES (null)"
-            cursor = self.conn.execute(sql)
-            self.conn.commit()
-            out_dic['lastrowid'] = cursor.lastrowid
-        except Exception as error:
-            #except sqlite3.IntegrityError:
-            #except sqlite3.OperationalError, msg:
-            #print("Error: {}".format(error))
-            out_dic['error_code'] = error.args[0]
-            out_dic['error_message'] = "{}".format(error)
-            logging.info("sqlite error: %s", "{}".format(error))
-            #raise
-        return out_dic

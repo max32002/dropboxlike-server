@@ -7,6 +7,7 @@ import hashlib
 import time
 import signal
 from uuid import uuid4
+from misc_aes import AESCipher
 
 def rand_abc(desired_len):
     sr = random.SystemRandom()
@@ -49,6 +50,11 @@ def md5_hash(value):
     data.update(value)
     digest = data.hexdigest()
     return digest
+
+def aes_encrypt(key,value):
+    ao = AESCipher(key)
+    return ao.encrypt(value)
+
 
 def install_tornado_shutdown_handler(ioloop, server, logger=None):
     # see https://gist.github.com/mywaiting/4643396 for more detail
