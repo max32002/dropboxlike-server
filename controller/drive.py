@@ -46,7 +46,7 @@ class DriveClaimAuthHandler(BaseHandler):
                 errorCode = 1003
                 pass
 
-        pinCode = None
+        pincode = None
         password = None
         request_id = None
         client_md5 = None
@@ -54,8 +54,8 @@ class DriveClaimAuthHandler(BaseHandler):
             is_pass_check = False
             if _body:
                 try :
-                    if 'pinCode' in _body:
-                        pinCode = _body['pinCode'][:10]
+                    if 'pincode' in _body:
+                        pincode = _body['pincode'][:10]
                     if 'password' in _body:
                         password = _body['password'][:20]
                     if 'request_id' in _body:
@@ -69,7 +69,7 @@ class DriveClaimAuthHandler(BaseHandler):
                     pass
 
         if is_pass_check:
-            if pinCode is None:
+            if pincode is None:
                 errorMessage = "PinCode empty"
                 errorCode = 1010
                 is_pass_check = False
@@ -90,7 +90,7 @@ class DriveClaimAuthHandler(BaseHandler):
             # [TODO]: Password brute-force attack.
             x_real_ip = self.request.headers.get("X-Real-IP")
             remote_ip = self.request.remote_ip if not x_real_ip else x_real_ip
-            log_ret, log_dict = pincode_log_dbo.add(pinCode,password,request_id,client_md5,remote_ip)
+            log_ret, log_dict = pincode_log_dbo.add(pincode,password,request_id,client_md5,remote_ip)
             #print "log_ret", log_ret
             if not log_ret:
                 errorMessage = "claim_auth log fail"
@@ -103,13 +103,19 @@ class DriveClaimAuthHandler(BaseHandler):
             #logging.info('token:%s, account:%s, password:%s, remote_ip:%s' % (token, account, password, remote_ip))
 
         # check poken on public server.
+        pincode_dict = None
         if is_pass_check:
-            match_result = pincode_dbo.match(pinCode,password)
-            print "match_result", match_result
-            if match_result is None:
+            pincode_dict = pincode_dbo.match(pincode,password)
+            #print "pincode_dict", pincode_dict
+            if pincode_dict is None:
                 errorMessage = "Password not match"
                 errorCode = 1021
                 is_pass_check = False
+
+        if is_pass_check:
+            # last step
+            sn = pincode_dict['sn']
+            print "sn", sn
             
         if is_pass_check:
             # every thing is correct

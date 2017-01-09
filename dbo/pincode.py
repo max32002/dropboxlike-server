@@ -5,13 +5,14 @@ from dbo.basetable import BaseTable
 #data object for Drive
 #############################################################
 class DboPincode(BaseTable):
-    sql_return_fields = "pincode,password,createdTime"
+    sql_return_fields = "pincode,password,sn,createdTime"
     sql_table_name = "pincode"
     sql_primary_key = "pincode"
     sql_create_table = '''
 CREATE TABLE IF NOT EXISTS `pincode` (
 `pincode`   TEXT NOT NULL PRIMARY KEY,
 `password` TEXT NOT NULL,
+`sn` TEXT NOT NULL,
 `createdTime` DATETIME NULL
 );
     '''
@@ -21,15 +22,15 @@ CREATE TABLE IF NOT EXISTS `pincode` (
     def __init__(self, db_conn):
         BaseTable.__init__(self, db_conn)
 
-    def add(self, pincode, password):
+    def add(self, pincode, password, sn):
         result = False
         out_dic = {}
         out_dic['error_code'] = ''
         out_dic['rowcount'] = 0
         try:
             # insert master
-            sql = "INSERT INTO pincode (pincode,password,createdTime) VALUES (?,?,datetime('now'));"
-            cursor = self.conn.execute(sql, (pincode,password))
+            sql = "INSERT INTO pincode (pincode,password,sn,createdTime) VALUES (?,?,?,datetime('now'));"
+            cursor = self.conn.execute(sql, (pincode,password,sn))
 
             self.conn.commit()
             out_dic['lastrowid'] = cursor.lastrowid
@@ -40,15 +41,15 @@ CREATE TABLE IF NOT EXISTS `pincode` (
             #print("Error: {}".format(error))
             out_dic['error_code'] = error.args[0]
             out_dic['error_message'] = "{}".format(error)
-            logging.info("sqlite error: %s", "{}".format(error))
-            logging.info("sql: %s", "{}".format(sql))
+            logging.error("sqlite error: %s", "{}".format(error))
+            #logging.error("sql: %s", "{}".format(sql))
             #raise
         return result, out_dic
 
 
     def match(self, pincode, password):
         where = "pincode='" + pincode.replace("'", "''") + "' and password='" + password.replace("'", "''") + "'"
-        print "sql where:",where
+        #print "sql where:",where
         return self.first(where=where)
 
 
@@ -94,7 +95,7 @@ CREATE TABLE IF NOT EXISTS `pincode_log` (
             #print("Error: {}".format(error))
             out_dic['error_code'] = error.args[0]
             out_dic['error_message'] = "{}".format(error)
-            logging.info("sqlite error: %s", "{}".format(error))
-            logging.info("sql: %s", "{}".format(sql))
+            logging.error("sqlite error: %s", "{}".format(error))
+            #logging.error("sql: %s", "{}".format(sql))
             #raise
         return result, out_dic

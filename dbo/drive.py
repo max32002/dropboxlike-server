@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS `drive` (
     # return:
     #       False: add fail.
     #       True: add successfully.
-    def add(self, sn, title, drive_token):
+    def add(self, title, drive_token):
         result = False
         out_dic = {}
         out_dic['error_code'] = ''
@@ -44,8 +44,8 @@ CREATE TABLE IF NOT EXISTS `drive` (
             #print("Error: {}".format(error))
             out_dic['error_code'] = error.args[0]
             out_dic['error_message'] = "{}".format(error)
-            logging.info("sqlite error: %s", "{}".format(error))
-            #logging.info("sql: %s", "{}".format(sql))
+            logging.error("sqlite error: %s", "{}".format(error))
+            #logging.error("sql: %s", "{}".format(sql))
             #raise
         return result, out_dic
 

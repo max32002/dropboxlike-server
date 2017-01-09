@@ -32,22 +32,23 @@ def drive_register(drive_dbo, pincode_dbo):
     if http_code > 0:
         if not json_obj is None:
             #print "json:", json_obj
-            pinCode = json_obj.get('pinCode','')
+            pincode = json_obj.get('pincode','')
+            sn = json_obj.get('sn','')
             password = misc.rand_number(6)
             #sn = misc.rand_number(16)
             #if len(sn) > 0:
                 # for short-pincode & changeable & GUI support sultion.
-                #display_pincode_to_user(pinCode, DEFAULT_REG_WAIT_MINUTES)
+                #display_pincode_to_user(pincode, DEFAULT_REG_WAIT_MINUTES)
 
-            display_pincode_to_user(pinCode, password=password)
+            display_pincode_to_user(pincode, password=password)
             # clear whole table.
             #drive_dbo.empty()
             pincode_dbo.empty()
-            ret, save_dic = pincode_dbo.add(pinCode,password)
+            ret, save_dic = pincode_dbo.add(pincode,password,sn)
 
             # auto pooling, after get pincode.
             # for short-pincode & changeable & GUI support sultion.
-            #drive_query(drive_dbo, pincode_dbo, pinCode, sn, pooling_flag=True)
+            #drive_query(drive_dbo, pincode_dbo, pincode, sn, pooling_flag=True)
         else:
             print "unknow error, return json empty!"
             pass
@@ -91,11 +92,11 @@ def call_drive_register_api():
     return http_code,json_obj
 
 
-def drive_query(drive_dbo, pincode_dbo, pinCode, sn, pooling_flag=False):
+def drive_query(drive_dbo, pincode_dbo, pincode, sn, pooling_flag=False):
     # http get solution.
-    http_code,json_obj = call_drive_query_api(pinCode, sn)
+    http_code,json_obj = call_drive_query_api(pincode, sn)
     # websocket solution.
-    #http_code,json_obj = call_drive_query_api_ws(pinCode, sn, pooling_flag=pooling_flag)
+    #http_code,json_obj = call_drive_query_api_ws(pincode, sn, pooling_flag=pooling_flag)
     if http_code > 0:
         if not json_obj is None:
             if 'error' in json_obj:
@@ -107,7 +108,8 @@ def drive_query(drive_dbo, pincode_dbo, pinCode, sn, pooling_flag=False):
 
             if http_code == 200:
                 # 
-                print "save claimed info to local database..."
+                pass
+                #print "save claimed info to local database..."
             else:
                 if error_code in range(1000,1100):
                     # [Too lazy]: assume pincode expire...
@@ -118,9 +120,9 @@ def drive_query(drive_dbo, pincode_dbo, pinCode, sn, pooling_flag=False):
                     # pincode not expire, need pooling at next time.
                     #print "Start to Pooling... on server side."
                     if len(sn) > 0:
-                        display_pincode_to_user(pinCode)
+                        display_pincode_to_user(pincode)
 
-                    drive_query(drive_dbo, pincode_dbo, pinCode, sn, pooling_flag=True)
+                    drive_query(drive_dbo, pincode_dbo, pincode, sn, pooling_flag=True)
                     pass
         else:
             print "unknow error, return json empty!"
@@ -131,25 +133,25 @@ def drive_query(drive_dbo, pincode_dbo, pinCode, sn, pooling_flag=False):
 
 
 # solution 2, websocket
-def call_drive_query_api_ws(pinCode, sn, pooling_flag=False):
+def call_drive_query_api_ws(pincode, sn, pooling_flag=False):
     ws = libWSClient.WSClient()
     #api_hostname = "claim.dropboxlike.com"
     api_hostname = "127.0.0.1"
     api_reg_pattern = "1/ws_reg"
-    json_body = {'pinCode':pinCode, 'sn':sn, 'client_version':options.versionCode}
+    json_body = {'pincode':pincode, 'sn':sn, 'client_version':options.versionCode}
     sent_data = json.dumps(dict(action="reg_query",data=json_body,pooling_confirmed=pooling_flag))
     return ws.connect(api_hostname, api_reg_pattern, data=sent_data)
 
 
 # solution 1, http
 # Deprecated
-def call_drive_query_api(pinCode, sn):
+def call_drive_query_api(pincode, sn):
     api_reg_pattern = "1/drive/reg_query"
     #api_hostname = "claim.dropboxlike.com"
     api_hostname = "127.0.0.1"
     api_url = "https://%s/%s" % (api_hostname,api_reg_pattern)
 
-    json_body = json.dumps({'pinCode':pinCode, 'sn':sn, 'client_version':options.versionCode})
+    json_body = json.dumps({'pincode':pincode, 'sn':sn, 'client_version':options.versionCode})
     #print json_body
 
     http_obj = libHttp.Http()
@@ -174,10 +176,10 @@ def call_drive_query_api(pinCode, sn):
     return http_code,json_obj
 
 
-def display_pincode_to_user(pinCode, minutes=None, password=None):
-    if len(pinCode) > 0:
+def display_pincode_to_user(pincode, minutes=None, password=None):
+    if len(pincode) > 0:
         message = ""
-        message += "Enter PinCode:'%s'" % (pinCode)
+        message += "Enter PinCode:'%s'" % (pincode)
         if not password is None:
             message += ", Password: '%s'" % (password)
         message += " to your mobile phone"
@@ -337,7 +339,6 @@ def write_config_file(path, config):
         print 'Config file is empty!'
 
     return ret
-
 
 
 # write user's setting to config file.

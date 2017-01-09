@@ -57,7 +57,7 @@ def install_tornado_shutdown_handler(ioloop, server, logger=None):
         logger = logging
 
     def _sig_handler(sig, frame):
-        logger.info("Signal %s received. Preparing to stop server.", sig)
+        #logger.info("Signal %s received. Preparing to stop server.", sig)
         ioloop.add_callback(shutdown)
 
     def shutdown():
