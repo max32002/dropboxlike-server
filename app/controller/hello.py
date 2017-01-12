@@ -1,4 +1,4 @@
-from handlers import BaseHandler
+from app.handlers import BaseHandler
 
 class HelloHandler(BaseHandler):
     def get(self):

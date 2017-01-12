@@ -1,5 +1,5 @@
-﻿from dbo.basetable import BaseTable
-from lib import utils
+﻿from app.dbo.basetable import BaseTable
+from app.lib import utils
 import logging
 
 #data object for Account

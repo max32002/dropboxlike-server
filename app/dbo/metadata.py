@@ -1,7 +1,7 @@
 ﻿
 import logging
-from dbo.basetable import BaseTable
-from lib import utils
+from app.dbo.basetable import BaseTable
+from app.lib import utils
 import os
 import sqlite3
 

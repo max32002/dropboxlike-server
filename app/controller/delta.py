@@ -1,9 +1,9 @@
-from handlers import BaseHandler
+from app.handlers import BaseHandler
 from tornado.options import options
 import logging
 import sqlite3
-from dbo.metadata import DboMetadata
-from lib import utils
+from app.dbo.metadata import DboMetadata
+from app.lib import utils
 import json
 import os
 

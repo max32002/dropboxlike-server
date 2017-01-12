@@ -1,8 +1,8 @@
 from tornado.options import options
 import logging
-from dbo.thumbnail import DboThumbnail
+from app.dbo.thumbnail import DboThumbnail
 import sqlite3
-from lib import thumbnail
+from app.lib import thumbnail
 
 class ThumbnailManager():
     '''!Thumbnail API Controller'''

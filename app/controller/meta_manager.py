@@ -1,7 +1,7 @@
 from tornado.options import options
 import logging
-from dbo.metadata import DboMetadata
-from lib import utils
+from app.dbo.metadata import DboMetadata
+from app.lib import utils
 import json
 
 class MetaManager():

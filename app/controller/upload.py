@@ -10,7 +10,7 @@ import logging
 from bson.json_util import dumps, loads
 from bson.objectid import ObjectId
 
-from lib import data_file
+from app.lib import data_file
 
 class UploadHandler(BaseHandler):
     def post(self):

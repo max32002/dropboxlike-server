@@ -12,9 +12,9 @@ from tornado.escape import _unicode, native_str
 
 
 import settings
-from lib import libHttp
-from lib import libWSClient
-from lib import misc
+from app.lib import libHttp
+from app.lib import libWSClient
+from app.lib import misc
 import json
 
 # for terminate app.

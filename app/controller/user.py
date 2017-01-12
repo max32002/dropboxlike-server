@@ -16,7 +16,7 @@ from tornado.options import options
 from bson.json_util import dumps, loads
 from bson.objectid import ObjectId
 
-from lib import data_file
+from app.lib import data_file
 
 class UserListHandler(BaseHandler):
     '''

@@ -1,13 +1,13 @@
-from handlers import BaseHandler
+from app.handlers import BaseHandler
 import logging
 import os
 from tornado.options import options
-from lib import data_file
+from app.lib import data_file
 import uuid
 import sqlite3
-from lib import utils
+from app.lib import utils
 import shutil
-from dbo.chunk_upload import DboChunkUpload
+from app.dbo.chunk_upload import DboChunkUpload
 
 class FilesHandler(BaseHandler):
     action = None

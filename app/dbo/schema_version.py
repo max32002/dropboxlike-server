@@ -1,5 +1,5 @@
 ﻿import logging
-from dbo.basetable import BaseTable
+from app.dbo.basetable import BaseTable
 from tornado.options import options
 
 

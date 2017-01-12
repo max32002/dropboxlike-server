@@ -10,26 +10,26 @@ from tornado.ioloop import IOLoop
 from tornado.options import options, parse_command_line
 from jinja2 import ChoiceLoader, FileSystemLoader
 
-from lib.template import JinjaLoader
-from lib.misc import install_tornado_shutdown_handler
+from app.lib.template import JinjaLoader
+from app.lib.misc import install_tornado_shutdown_handler
 
 import sqlite3
-from dbo.schema_version import DboSchemaVersion
+from app.dbo.schema_version import DboSchemaVersion
 
 #import settings
-import driveconfig
+import app.driveconfig
 
 class MaxDropboxLikeWeb(object):
     def get_settings(self, proj_template_path, proj_static_paths):
         #settings.define_app_options()
-        claimed = driveconfig.driverconfig()
+        claimed = app.driveconfig.driverconfig()
 
         parse_command_line(final=True)
 
-        self_dir_path = os.path.abspath(os.path.dirname(__file__))
+        self_dir_path = os.path.abspath(os.path.join(os.path.dirname(__file__),".."))
         loader = ChoiceLoader([
             FileSystemLoader(proj_template_path),
-            FileSystemLoader(os.path.join(self_dir_path, 'templates')),
+            FileSystemLoader(os.path.join(self_dir_path, '../templates')),
             ])
 
         return {

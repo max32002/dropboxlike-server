@@ -1,8 +1,8 @@
-from handlers import BaseHandler
+from app.handlers import BaseHandler
 import logging
 import os
 from tornado.options import options
-from controller.meta_manager import MetaManager
+from app.controller.meta_manager import MetaManager
 
 
 class FileCreateFolderHandler(BaseHandler):

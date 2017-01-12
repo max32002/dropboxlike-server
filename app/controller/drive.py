@@ -1,11 +1,11 @@
-from handlers import BaseHandler
+from app.handlers import BaseHandler
 import logging
 import json
-from lib import utils
-from lib import misc
-from dbo.drive import DboDrive
-from dbo.pincode import DboPincode
-from dbo.pincode import DboPincodeLog
+from app.lib import utils
+from app.lib import misc
+from app.dbo.drive import DboDrive
+from app.dbo.pincode import DboPincode
+from app.dbo.pincode import DboPincodeLog
 
 class DriveClaimAuthHandler(BaseHandler):
     def post(self):

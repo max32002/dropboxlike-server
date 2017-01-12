@@ -1,4 +1,4 @@
-from handlers import BaseHandler
+from app.handlers import BaseHandler
 import logging
 import os
 from tornado.options import options

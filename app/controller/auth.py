@@ -1,8 +1,8 @@
-from handlers import BaseHandler
+from app.handlers import BaseHandler
 import uuid
 import logging
 import json
-from lib import utils
+from app.lib import utils
 
 class AuthHandler(BaseHandler):
     def post(self):

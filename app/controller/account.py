@@ -15,7 +15,7 @@ from tornado.escape import json_decode
 from bson.json_util import dumps, loads
 from bson.objectid import ObjectId
 
-from lib import data_file
+from app.lib import data_file
 
 class AccountHandler(BaseHandler):
     def get(self):

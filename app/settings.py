@@ -24,12 +24,12 @@ def define_app_options():
     database_schema_version = 1
     define('database_schema_version', database_schema_version)
 
-    app_root = os.path.dirname(os.path.abspath(__file__))
+    app_root = os.path.abspath(os.path.join(os.path.dirname(__file__),".."))
 
     storage_access_point = os.path.join(app_root, 'storage')
     define('storage_access_point', default=storage_access_point)
 
-    certificate_path = os.path.join(app_root, 'certs')
+    certificate_path = os.path.join(app_root, 'app/certs')
     define('certificate_path', default=certificate_path)
 
     sys_db = os.path.join(options.storage_access_point, 'dropboxlike.db')

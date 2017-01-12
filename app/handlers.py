@@ -16,13 +16,13 @@ from tornado.options import options
 from bson.json_util import dumps, loads
 from bson.objectid import ObjectId
 
-from lib import data_file
-from lib import utils
-from dbo.account import DboAccount
-from dbo.delta import DboDelta
+from app.lib import data_file
+from app.lib import utils
+from app.dbo.account import DboAccount
+from app.dbo.delta import DboDelta
 
-from controller.meta_manager import MetaManager
-from controller.thumbnail_manager import ThumbnailManager
+from app.controller.meta_manager import MetaManager
+from app.controller.thumbnail_manager import ThumbnailManager
 
 import sqlite3
 import os
