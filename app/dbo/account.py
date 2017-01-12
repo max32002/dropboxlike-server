@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     #       False: login fail.
     #       True: login successfully.
     def login( self, account, password ):
-        sql = 'SELECT account FROM account WHERE account=? and password=? LIMIT 1'
+        sql = 'SELECT account FROM users WHERE account=? and password=? LIMIT 1'
         cursor = self.conn.execute(sql, (account, password,))
         ret=False
         for row in cursor:
@@ -129,7 +129,7 @@ CREATE TABLE IF NOT EXISTS `users` (
         out_dic['error_code'] = ''
         out_dic['rowcount'] = 0
         try:
-            sql = "SELECT poolid,localpoolname FROM account_pool WHERE account=? AND status=11"
+            sql = "SELECT poolid,localpoolname FROM users_pool WHERE account=? AND status=11"
             cursor = self.conn.execute(sql, (account,))
             for row in cursor:
                 db_path = row[1] + "/"
