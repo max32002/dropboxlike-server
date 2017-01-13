@@ -3,4 +3,3 @@ tornado==4.4.2
 six==1.10.0
 #Starting from version 3.0.0 Pillow needs libjpeg.
 pillow==2.9.0
-pycrypto=2.6.1

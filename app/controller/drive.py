@@ -52,6 +52,7 @@ class DriveClaimAuthHandler(BaseHandler):
         password = None
         request_id = None
         client_md5 = None
+        drive_title = ""
         if is_pass_check:
             is_pass_check = False
             if _body:
@@ -64,6 +65,8 @@ class DriveClaimAuthHandler(BaseHandler):
                         request_id = _body['request_id']
                     if 'client_md5' in _body:
                         client_md5 = _body['client_md5'][:64]
+                    if 'drive_title' in _body:
+                        drive_title = _body['drive_title'][:256]
                     is_pass_check = True
                 except Exception:
                     errorMessage = "parse json fail"
@@ -116,20 +119,40 @@ class DriveClaimAuthHandler(BaseHandler):
 
         if is_pass_check:
             # last step
-            sn = pincode_dict['sn']
-            #print "sn", sn
             is_owner=1
-            ret,account,password = auth_dbo.new_user(is_owner)
+            ret,user_account,user_password = auth_dbo.new_user(is_owner)
             #print "new user:",ret,account,password
-            account_info = "%s,%s" % (account,password)
-            account_info_encrypt = misc.aes_encrypt(client_md5,account_info)
+            account_info = "%s,%s" % (user_account,user_password)
+            account_info_encrypt = misc.aes_encrypt(password,account_info)
             #print "account_info:",account_info
             #print "account_info_encrypt:",account_info_encrypt
 
+            # start check on public server.
             confirm_result = False
+
+            http_code,json_obj = self.call_drive_confirm_api(pincode_dict, request_id, client_md5, account_info, drive_title)
+            if http_code > 0:
+                if not json_obj is None:
+                    #print "json:", json_obj
+                    pincode = json_obj.get('pincode','')
+                    drive_token = json_obj.get('drive_token','')
+
+                    drive_dbo.empty()
+                    ret, save_dic = drive_dbo.add(drive_title, drive_token)
+
+                    # auto pooling, after get pincode.
+                    # for short-pincode & changeable & GUI support sultion.
+                    #drive_query(drive_dbo, pincode_dbo, pincode, sn, pooling_flag=True)
+                else:
+                    print "unknow error, return json empty!"
+                    pass
+            else:
+                #print "server is not able be connected or cancel by user"
+                pass
+
             if not confirm_result:
                 # delete create new user.
-                auth_dbo.pk_delete(account)
+                auth_dbo.pk_delete(user_account)
 
             
         if is_pass_check:
@@ -139,3 +162,45 @@ class DriveClaimAuthHandler(BaseHandler):
             self.set_status(400)
             self.write(dict(error_msg=errorMessage,error_code=errorCode))
             #self.render('auth_fail.json', account='u12345')
+
+    def call_drive_confirm_api(self, pincode_dict, request_id, client_md5, drive_title):
+        api_reg_pattern = "1/drive/claim_confirm"
+        #api_hostname = "claim.dropboxlike.com"
+        api_hostname = "127.0.0.1"
+        api_url = "https://%s/%s" % (api_hostname,api_reg_pattern)
+
+        confirm_dict = self.prepare_confirm_json_body()
+        confirm_dict['sn'] = pincode_dict['sn']
+        confirm_dict['pincode'] = pincode_dict['pincode']
+        confirm_dict['request_id'] = request_id
+        confirm_dict['client_md5'] = client_md5
+        confirm_dict['drive_title'] = drive_title
+        json_body = json.dumps(confirm_dict)
+        #print json_body
+
+        http_obj = libHttp.Http()
+        (new_html_string, http_code) = http_obj.get_http_response_core(api_url, data=json_body)
+        json_obj = None
+        if http_code==200:
+            # direct read the string to json.
+            json_obj = json.loads(new_html_string)
+        else:
+            #print "server return error code: %d" % (http_code,)
+            pass
+            # error
+        return http_code,json_obj
+
+
+    def prepare_confirm_json_body(self, sn, pincode, request_id, client_md5, account_info):
+        import socket
+        computerName = socket.gethostname()
+        localIp = socket.gethostbyname(socket.gethostname())
+
+        from uuid import getnode as get_mac
+        mac = get_mac()
+        mac_formated = ':'.join(("%012X" % mac)[i:i+2] for i in range(0, 12, 2))
+
+        node_number = 0
+
+        data = {'sn': sn, 'pincode': pincode, 'request_id':request_id, 'client_md5': client_md5, 'account_info':account_info, 'node_number':node_number, 'localIp':localIp, 'port':options.port, 'mac': mac_formated, 'client_version':options.versionCode}
+        return data
