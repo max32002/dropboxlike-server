@@ -24,27 +24,21 @@ CREATE TABLE IF NOT EXISTS `pincode` (
 
     def add(self, pincode, password, sn):
         result = False
-        out_dic = {}
-        out_dic['error_code'] = ''
-        out_dic['rowcount'] = 0
         try:
             # insert master
             sql = "INSERT INTO pincode (pincode,password,sn,createdTime) VALUES (?,?,?,datetime('now'));"
             cursor = self.conn.execute(sql, (pincode,password,sn))
 
             self.conn.commit()
-            out_dic['lastrowid'] = cursor.lastrowid
             result = True
         except Exception as error:
             #except sqlite3.IntegrityError:
             #except sqlite3.OperationalError, msg:
             #print("Error: {}".format(error))
-            out_dic['error_code'] = error.args[0]
-            out_dic['error_message'] = "{}".format(error)
             logging.error("sqlite error: %s", "{}".format(error))
             #logging.error("sql: %s", "{}".format(sql))
             #raise
-        return result, out_dic
+        return result
 
 
     def match(self, pincode, password):
@@ -78,24 +72,18 @@ CREATE TABLE IF NOT EXISTS `pincode_log` (
 
     def add(self, pincode, password, request_id, client_md5, remoteIp):
         result = False
-        out_dic = {}
-        out_dic['error_code'] = ''
-        out_dic['rowcount'] = 0
         try:
             # insert master
             sql = "INSERT INTO pincode_log (pincode,password,request_id,client_md5,remoteIp,createdTime) VALUES (?,?,?,?,?,datetime('now'));"
             cursor = self.conn.execute(sql, (pincode, password, request_id, client_md5, remoteIp))
 
             self.conn.commit()
-            out_dic['lastrowid'] = cursor.lastrowid
             result = True
         except Exception as error:
             #except sqlite3.IntegrityError:
             #except sqlite3.OperationalError, msg:
             #print("Error: {}".format(error))
-            out_dic['error_code'] = error.args[0]
-            out_dic['error_message'] = "{}".format(error)
             logging.error("sqlite error: %s", "{}".format(error))
             #logging.error("sql: %s", "{}".format(sql))
             #raise
-        return result, out_dic
+        return result

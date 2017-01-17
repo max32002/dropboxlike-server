@@ -27,25 +27,19 @@ CREATE TABLE IF NOT EXISTS `drive` (
     #       True: add successfully.
     def add(self, title, drive_token):
         result = False
-        out_dic = {}
-        out_dic['error_code'] = ''
-        out_dic['rowcount'] = 0
         try:
             # insert master
             sql = "INSERT INTO drive (title, drive_token, status,createdTime) VALUES (?,?, 0,datetime('now'));"
-            cursor = self.conn.execute(sql, (sn,))
+            cursor = self.conn.execute(sql, (title, drive_token,))
 
             self.conn.commit()
-            out_dic['lastrowid'] = cursor.lastrowid
             result = True
         except Exception as error:
             #except sqlite3.IntegrityError:
             #except sqlite3.OperationalError, msg:
             #print("Error: {}".format(error))
-            out_dic['error_code'] = error.args[0]
-            out_dic['error_message'] = "{}".format(error)
             logging.error("sqlite error: %s", "{}".format(error))
             #logging.error("sql: %s", "{}".format(sql))
             #raise
-        return result, out_dic
+        return result
 

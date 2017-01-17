@@ -30,7 +30,7 @@ def drive_register(drive_dbo, pincode_dbo):
     # method 2: websocket solution.
     #http_code,json_obj = call_drive_register_api_ws()
     if http_code > 0:
-        if not json_obj is None:
+        if http_code==200 and not json_obj is None:
             #print "json:", json_obj
             pincode = json_obj.get('pincode','')
             sn = json_obj.get('sn','')
@@ -44,7 +44,7 @@ def drive_register(drive_dbo, pincode_dbo):
             # clear whole table.
             #drive_dbo.empty()
             pincode_dbo.empty()
-            ret, save_dic = pincode_dbo.add(pincode,password,sn)
+            ret = pincode_dbo.add(pincode,password,sn)
 
             # auto pooling, after get pincode.
             # for short-pincode & changeable & GUI support sultion.
@@ -64,8 +64,8 @@ def call_drive_register_api_ws():
     #api_hostname = "claim.dropboxlike.com"
     api_hostname = "127.0.0.1"
     api_reg_pattern = "1/ws_reg"
-    json_body = prepare_reg_json_body()
-    sent_data = json.dumps(dict(action="reg",data=json_body))
+    body_dict = prepare_reg_json_body()
+    sent_data = json.dumps(dict(action="reg",data=body_dict))
     return ws.connect(api_hostname, api_reg_pattern, data=sent_data)
 
 
@@ -87,30 +87,49 @@ def call_drive_register_api():
         json_obj = json.loads(new_html_string)
     else:
         #print "server return error code: %d" % (http_code,)
-        pass
-        # error
+        #print "server return error message: %s" % (new_html_string,)
+        if http_code==400:
+            json_obj = None
+            try :
+                json_obj = json.loads(new_html_string)
+            except ValueError as err:  # includes simplejson.decoder.JSONDecodeError
+                #print('except:%s' % (str(err)))
+                json_obj = None
+            except Exception as err:
+                #print('except:%s' % (str(err)))
+                json_obj = None
     return http_code,json_obj
 
 
-def drive_query(drive_dbo, pincode_dbo, pincode, sn, pooling_flag=False):
+#def drive_query(drive_dbo, pincode_dbo, pincode, sn, pooling_flag=False):
+def drive_query(pincode, sn, pooling_flag=False):
     # http get solution.
     http_code,json_obj = call_drive_query_api(pincode, sn)
     # websocket solution.
     #http_code,json_obj = call_drive_query_api_ws(pincode, sn, pooling_flag=pooling_flag)
+    error_msg = ""
+    error_code = 0
+    ret = False
     if http_code > 0:
         if not json_obj is None:
             if 'error' in json_obj:
                 error_json = json_obj['error']
-                error_msg = error_json.get('message','')
-                #print "error_msg:%s" % error_msg
-                error_code = error_json.get('code',0)
-                #print "error_msg:%d" % error_code
+                if error_json:
+                    error_msg = error_json.get('message','')
+                    #print "error_msg:%s" % error_msg
+                    error_code = error_json.get('code',0)
+                    #print "error_msg:%d" % error_code
 
             if http_code == 200:
-                # 
-                pass
+                # for shorten pincode version.
                 #print "save claimed info to local database..."
+
+                # do nothing for now version.
+                ret = True
+                pass
             else:
+                # for shorten pincode version.
+                """
                 if error_code in range(1000,1100):
                     # [Too lazy]: assume pincode expire...
                     #print "Pincode expire, get new pincode..."
@@ -124,6 +143,8 @@ def drive_query(drive_dbo, pincode_dbo, pincode, sn, pooling_flag=False):
 
                     drive_query(drive_dbo, pincode_dbo, pincode, sn, pooling_flag=True)
                     pass
+                """
+                pass
         else:
             print "unknow error, return json empty!"
             pass
@@ -131,6 +152,7 @@ def drive_query(drive_dbo, pincode_dbo, pincode, sn, pooling_flag=False):
         #print "server is not able be connected or cancel by user"
         pass
 
+    return ret
 
 # solution 2, websocket
 def call_drive_query_api_ws(pincode, sn, pooling_flag=False):
@@ -144,14 +166,15 @@ def call_drive_query_api_ws(pincode, sn, pooling_flag=False):
 
 
 # solution 1, http
-# Deprecated
 def call_drive_query_api(pincode, sn):
     api_reg_pattern = "1/drive/reg_query"
     #api_hostname = "claim.dropboxlike.com"
     api_hostname = "127.0.0.1"
     api_url = "https://%s/%s" % (api_hostname,api_reg_pattern)
-
-    json_body = json.dumps({'pincode':pincode, 'sn':sn, 'client_version':options.versionCode})
+    body_dict = prepare_reg_json_body()
+    body_dict['pincode']=pincode
+    body_dict['sn']=sn
+    json_body = json.dumps(body_dict)
     #print json_body
 
     http_obj = libHttp.Http()
@@ -237,12 +260,26 @@ def generate_pincode():
                         #print "pincode exist: %s,%s" % (pincode_dict.get('pincode', ''),pincode_dict.get('sn', ''))
                         # start to query pincode.
                         #drive_query(drive_dbo, pincode_dbo, pincode_dict.get('pincode', ''),pincode_dict.get('sn', ''))
-                        display_pincode_to_user(pincode_dict.get('pincode', ''), password=pincode_dict.get('password', ''))
-                        is_get_pincode = True
+
+                        # server side check.
+                        if drive_query(pincode_dict.get('pincode', ''),pincode_dict.get('sn', '')):
+                            display_pincode_to_user(pincode_dict.get('pincode', ''), password=pincode_dict.get('password', ''))
+                            is_get_pincode = True
+                        else:
+                            # get pincode again.
+                            pass
+
                     else:
                         # unknown error...
-                        error_msg = "Can't get pincode from database, please delete dropboxlike.db than launch application agage."
+                        # get pincode again.
+                        #error_msg = "Can't get pincode from database, please delete dropboxlike.db than launch application agage."
                         pass
+
+                    if not is_get_pincode:
+                        # get pincode again.
+                        is_get_pincode = drive_register(drive_dbo, pincode_dbo)
+                        if not is_get_pincode:
+                            error_msg = "Can't connect to dropboxlike register server, please try again later"
 
                 if not is_get_pincode:
                     print error_msg
