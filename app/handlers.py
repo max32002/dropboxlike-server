@@ -42,15 +42,21 @@ class BaseHandler(RequestHandler):
 
         error_code = 0
         if error_code == 0:
+            is_claim_uri = False
+            for virtual_folder in options.claim_uri_prefix:
+                if path.startswith(virtual_folder):
+                    is_claim_uri = True
+
             if not self.application.claimed:
                 # only able to access claim API.
-                is_claim_uri = False
-                for virtual_folder in options.claim_uri_prefix:
-                    if path.startswith(virtual_folder):
-                        is_claim_uri = True
                 if not is_claim_uri:
                     # block all access.
                     error_code = 401
+            else:
+                # claimed.
+                if is_claim_uri:
+                    # block claim API.
+                    error_code = 403
 
         if error_code == 0:
             if user is None and not self.allow_anony:

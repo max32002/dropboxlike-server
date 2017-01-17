@@ -138,20 +138,27 @@ class DriveClaimAuthHandler(BaseHandler):
                 is_pass_check = False
 
         ret_dict = {}
+        user_account = ""
+        user_password = ""
         if is_pass_check:
             # last step
             is_owner=1
             ret,user_account,user_password = auth_dbo.new_user(is_owner)
             #print "new user:",ret,account,password
-            account_info = "%s,%s" % (user_account,user_password)
-            ret_dict['account'] = user_account
-            ret_dict['password'] = user_password
-            #account_info_encrypt = misc.aes_encrypt(password,account_info)
-            #print "account_info:",account_info
-            #print "account_info_encrypt:",account_info_encrypt
+            if ret:
+                account_info = "%s,%s" % (user_account,user_password)
+                ret_dict['account'] = user_account
+                ret_dict['password'] = user_password
+                #account_info_encrypt = misc.aes_encrypt(password,account_info)
+                #print "account_info:",account_info
+                #print "account_info_encrypt:",account_info_encrypt
+            else:
+                # error!
+                is_pass_check = False
 
+        if is_pass_check:
             # start check on public server.
-            confirm_result = False
+            is_pass_check = False
 
             http_code,json_obj = self.call_drive_confirm_api(pincode_dict, request_id, client_md5, drive_title)
             if http_code > 0:
@@ -182,7 +189,7 @@ class DriveClaimAuthHandler(BaseHandler):
                 #print "server is not able be connected or cancel by user"
                 pass
 
-            if not confirm_result:
+            if not is_pass_check:
                 # delete create new user.
                 auth_dbo.pk_delete(user_account)
 
