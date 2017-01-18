@@ -8,5 +8,5 @@ class VersionHandler(BaseHandler):
         self.set_header('Content-Type','application/json')
 
         self.set_status(200)
-        data = {'versionCode':options.versionCode, 'versionName':options.versionName, 'claimed':self.application.claimed}
+        data = {'versionCode':options.versionCode, 'version':options.versionName, 'claimed':self.application.claimed, 'features': []}
         self.write(data)

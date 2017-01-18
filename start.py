@@ -6,7 +6,7 @@ from app.dropboxlike import MaxDropboxLikeWeb
 if __name__ == "__main__":
 #        (r'/', 'controller.HelloHandler'),
     routes = [
-        (r'/version', 'app.controller.VersionHandler'),
+        (r'/server_info', 'app.controller.VersionHandler'),
         (r'/1/auth/token', 'app.controller.AuthHandler'),
         (r'/1/drive/claim_auth', 'app.controller.DriveClaimAuthHandler'),
         (r'/1/files_put(.*)', 'app.controller.FilesHandler'),

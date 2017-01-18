@@ -204,7 +204,7 @@ def display_pincode_to_user(pincode, minutes=None, password=None):
         message = ""
         message += "Enter PinCode:'%s'" % (pincode)
         if not password is None:
-            message += ", Password: '%s'" % (password)
+            message += ", Serial Number:'%s'" % (password)
         message += " to your mobile phone"
         if not minutes is None:
             message += " in %d minutes.\n" % (minutes)
