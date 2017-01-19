@@ -5,14 +5,14 @@ from tornado.options import options
 from app.lib import libHttp
 from app.lib import utils
 from app.lib import misc
-from app.dbo.drive import DboDrive
+from app.dbo.repo import DboRepo
 from app.dbo.pincode import DboPincode
 from app.dbo.pincode import DboPincodeLog
 
-class DriveClaimAuthHandler(BaseHandler):
+class RepoClaimAuthHandler(BaseHandler):
     def post(self):
         self.set_header('Content-Type','application/json')
-        drive_dbo = DboDrive(self.application.sql_client)
+        repo_dbo = DboRepo(self.application.sql_client)
         pincode_dbo = DboPincode(self.application.sql_client)
         pincode_log_dbo = DboPincodeLog(self.application.sql_client)
         auth_dbo = self.db_account
@@ -23,7 +23,7 @@ class DriveClaimAuthHandler(BaseHandler):
         #logging.info('body:%s' % (self.request.body))
         is_pass_check = False
         
-        if not drive_dbo is None:
+        if not repo_dbo is None:
             is_pass_check = True
         else:
             errorMessage = "database return null"
@@ -54,7 +54,7 @@ class DriveClaimAuthHandler(BaseHandler):
         serialnumber = None
         request_id = None
         client_md5 = None
-        drive_title = ""
+        repo_title = ""
         if is_pass_check:
             is_pass_check = False
             if _body:
@@ -67,8 +67,8 @@ class DriveClaimAuthHandler(BaseHandler):
                         request_id = _body['request_id']
                     if 'client_md5' in _body:
                         client_md5 = _body['client_md5'][:64]
-                    if 'drive_title' in _body:
-                        drive_title = _body['drive_title'][:256]
+                    if 'repo_title' in _body:
+                        repo_title = _body['repo_title'][:256]
                     is_pass_check = True
                 except Exception:
                     errorMessage = "parse json fail"
@@ -101,13 +101,13 @@ class DriveClaimAuthHandler(BaseHandler):
                 errorCode = 1013
                 is_pass_check = False
 
-            if drive_title is None:
-                errorMessage = "drive_title empty"
+            if repo_title is None:
+                errorMessage = "repo_title empty"
                 errorCode = 1014
                 is_pass_check = False
             else:
-                if len(drive_title)==0:
-                    errorMessage = "drive_title empty"
+                if len(repo_title)==0:
+                    errorMessage = "repo_title empty"
                     errorCode = 1014
                     is_pass_check = False
 
@@ -159,19 +159,19 @@ class DriveClaimAuthHandler(BaseHandler):
             # start check on public server.
             is_pass_check = False
 
-            http_code,json_obj = self.call_drive_confirm_api(pincode_dict, request_id, client_md5, drive_title)
+            http_code,json_obj = self.call_repo_confirm_api(pincode_dict, request_id, client_md5, repo_title)
             if http_code > 0:
                 if http_code == 200 and not json_obj is None:
                     #print "json:", json_obj
                     pincode = json_obj.get('pincode','')
-                    drive_token = json_obj.get('drive_token','')
+                    repo_token = json_obj.get('repo_token','')
                     account_sn = json_obj.get('account_sn','')
 
                     ret_dict['pincode'] = pincode
                     ret_dict['account_sn'] = account_sn
 
-                    drive_dbo.empty()
-                    is_pass_check = drive_dbo.add(drive_title, drive_token)
+                    repo_dbo.empty()
+                    is_pass_check = repo_dbo.add(repo_title, repo_token)
 
                 if http_code >= 400 and http_code <= 403 and not json_obj is None:
                     # by pass the error message
@@ -183,7 +183,7 @@ class DriveClaimAuthHandler(BaseHandler):
 
                     # auto pooling, after get pincode.
                     # for short-pincode & changeable & GUI support sultion.
-                    #drive_query(drive_dbo, pincode_dbo, pincode, sn, pooling_flag=True)
+                    #repo_query(repo_dbo, pincode_dbo, pincode, sn, pooling_flag=True)
             else:
                 #print "server is not able be connected or cancel by user"
                 pass
@@ -202,8 +202,8 @@ class DriveClaimAuthHandler(BaseHandler):
             self.write(dict(error_msg=errorMessage,error_code=errorCode))
             #self.render('auth_fail.json', account='u12345')
 
-    def call_drive_confirm_api(self, pincode_dict, request_id, client_md5, drive_title):
-        api_reg_pattern = "1/drive/claim_confirm"
+    def call_repo_confirm_api(self, pincode_dict, request_id, client_md5, repo_title):
+        api_reg_pattern = "1/repo/claim_confirm"
         #api_hostname = "claim.dropboxlike.com"
         api_hostname = "127.0.0.1"
         api_url = "https://%s/%s" % (api_hostname,api_reg_pattern)
@@ -213,7 +213,7 @@ class DriveClaimAuthHandler(BaseHandler):
         confirm_dict['pincode'] = pincode_dict['pincode']
         confirm_dict['request_id'] = request_id
         confirm_dict['client_md5'] = client_md5
-        confirm_dict['drive_title'] = drive_title
+        confirm_dict['repo_title'] = repo_title
         json_body = json.dumps(confirm_dict)
         #print "json_body", json_body
 

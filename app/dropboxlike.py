@@ -17,12 +17,12 @@ import sqlite3
 from app.dbo.schema_version import DboSchemaVersion
 
 #import settings
-import app.driveconfig
+import app.repoconfig
 
 class MaxDropboxLikeWeb(object):
     def get_settings(self, proj_template_path, proj_static_paths):
         #settings.define_app_options()
-        claimed = app.driveconfig.driverconfig()
+        claimed = app.repoconfig.config_repo()
 
         parse_command_line(final=True)
 

@@ -3,7 +3,7 @@
 import os
 #import logging
 import sqlite3
-from dbo.drive import DboDrive
+from dbo.repo import DboRepo
 from dbo.pincode import DboPincode
 from tornado.options import options
 
@@ -23,12 +23,12 @@ import sys
 # for short-pincode & changeable & GUI support sultion.
 DEFAULT_REG_WAIT_MINUTES = 2
 
-def drive_register(drive_dbo, pincode_dbo):
+def repo_register(repo_dbo, pincode_dbo):
     ret = False
     # method 1: http get solution.
-    http_code,json_obj = call_drive_register_api()
+    http_code,json_obj = call_repo_register_api()
     # method 2: websocket solution.
-    #http_code,json_obj = call_drive_register_api_ws()
+    #http_code,json_obj = call_repo_register_api_ws()
     if http_code > 0:
         if http_code==200 and not json_obj is None:
             #print "json:", json_obj
@@ -42,13 +42,13 @@ def drive_register(drive_dbo, pincode_dbo):
 
             display_pincode_to_user(pincode, password=password)
             # clear whole table.
-            #drive_dbo.empty()
+            #repo_dbo.empty()
             pincode_dbo.empty()
             ret = pincode_dbo.add(pincode,password,sn)
 
             # auto pooling, after get pincode.
             # for short-pincode & changeable & GUI support sultion.
-            #drive_query(drive_dbo, pincode_dbo, pincode, sn, pooling_flag=True)
+            #repo_query(repo_dbo, pincode_dbo, pincode, sn, pooling_flag=True)
         else:
             print "unknow error, return json empty!"
             pass
@@ -59,7 +59,7 @@ def drive_register(drive_dbo, pincode_dbo):
     return ret
 
 # solution 2, websocket
-def call_drive_register_api_ws():
+def call_repo_register_api_ws():
     ws = libWSClient.WSClient()
     #api_hostname = "claim.dropboxlike.com"
     api_hostname = "127.0.0.1"
@@ -70,8 +70,8 @@ def call_drive_register_api_ws():
 
 
 # solution 1, http get
-def call_drive_register_api():
-    api_reg_pattern = "1/drive/reg"
+def call_repo_register_api():
+    api_reg_pattern = "1/repo/reg"
     #api_hostname = "claim.dropboxlike.com"
     api_hostname = "127.0.0.1"
     api_url = "https://%s/%s" % (api_hostname,api_reg_pattern)
@@ -101,12 +101,12 @@ def call_drive_register_api():
     return http_code,json_obj
 
 
-#def drive_query(drive_dbo, pincode_dbo, pincode, sn, pooling_flag=False):
-def drive_query(pincode, sn, pooling_flag=False):
+#def repo_query(repo_dbo, pincode_dbo, pincode, sn, pooling_flag=False):
+def repo_query(pincode, sn, pooling_flag=False):
     # http get solution.
-    http_code,json_obj = call_drive_query_api(pincode, sn)
+    http_code,json_obj = call_repo_query_api(pincode, sn)
     # websocket solution.
-    #http_code,json_obj = call_drive_query_api_ws(pincode, sn, pooling_flag=pooling_flag)
+    #http_code,json_obj = call_repo_query_api_ws(pincode, sn, pooling_flag=pooling_flag)
     error_msg = ""
     error_code = 0
     ret = False
@@ -133,7 +133,7 @@ def drive_query(pincode, sn, pooling_flag=False):
                 if error_code in range(1000,1100):
                     # [Too lazy]: assume pincode expire...
                     #print "Pincode expire, get new pincode..."
-                    drive_register(drive_dbo, pincode_dbo)
+                    repo_register(repo_dbo, pincode_dbo)
                 if error_code == 2000 and not pooling_flag:
                     # only need pooling one time per client.
                     # pincode not expire, need pooling at next time.
@@ -141,7 +141,7 @@ def drive_query(pincode, sn, pooling_flag=False):
                     if len(sn) > 0:
                         display_pincode_to_user(pincode)
 
-                    drive_query(drive_dbo, pincode_dbo, pincode, sn, pooling_flag=True)
+                    repo_query(repo_dbo, pincode_dbo, pincode, sn, pooling_flag=True)
                     pass
                 """
                 pass
@@ -155,7 +155,7 @@ def drive_query(pincode, sn, pooling_flag=False):
     return ret
 
 # solution 2, websocket
-def call_drive_query_api_ws(pincode, sn, pooling_flag=False):
+def call_repo_query_api_ws(pincode, sn, pooling_flag=False):
     ws = libWSClient.WSClient()
     #api_hostname = "claim.dropboxlike.com"
     api_hostname = "127.0.0.1"
@@ -166,8 +166,8 @@ def call_drive_query_api_ws(pincode, sn, pooling_flag=False):
 
 
 # solution 1, http
-def call_drive_query_api(pincode, sn):
-    api_reg_pattern = "1/drive/reg_query"
+def call_repo_query_api(pincode, sn):
+    api_reg_pattern = "1/repo/reg_query"
     #api_hostname = "claim.dropboxlike.com"
     api_hostname = "127.0.0.1"
     api_url = "https://%s/%s" % (api_hostname,api_reg_pattern)
@@ -229,40 +229,40 @@ def prepare_reg_json_body():
 def generate_pincode():
     ret = False
     client = sqlite3.connect(options.sys_db)
-    drive_dbo = None
+    repo_dbo = None
     pincode_dbo = None
 
     try:
-        drive_dbo = DboDrive(client)
+        repo_dbo = DboRepo(client)
         pincode_dbo = DboPincode(client)
         #print "pincode_dbo.rowcount(): %d" % pincode_dbo.rowcount()
-        if drive_dbo.rowcount() == 1 and pincode_dbo.rowcount()==0:
+        if repo_dbo.rowcount() == 1 and pincode_dbo.rowcount()==0:
             # clean db and try again.
-            drive_dbo.empty()
+            repo_dbo.empty()
 
-        if drive_dbo.rowcount() == 0:
-            # drive empty.
+        if repo_dbo.rowcount() == 0:
+            # repo empty.
             try:
                 error_msg = ""
                 is_get_pincode = False
                 if pincode_dbo.rowcount() == 0:
-                    # call drive register process - step 1.
-                    is_get_pincode = drive_register(drive_dbo, pincode_dbo)
+                    # call repo register process - step 1.
+                    is_get_pincode = repo_register(repo_dbo, pincode_dbo)
                     if not is_get_pincode:
                         error_msg = "Can't connect to dropboxlike register server, please try again later"
                 else:
                     # pincode/sn exist.
-                    # call drive register process - step 2.
+                    # call repo register process - step 2.
                     #pincode_register()
                     pincode_dict = pincode_dbo.first()
                     if not pincode_dict is None:
                         #print "pincode_dict", pincode_dict
                         #print "pincode exist: %s,%s" % (pincode_dict.get('pincode', ''),pincode_dict.get('sn', ''))
                         # start to query pincode.
-                        #drive_query(drive_dbo, pincode_dbo, pincode_dict.get('pincode', ''),pincode_dict.get('sn', ''))
+                        #repo_query(repo_dbo, pincode_dbo, pincode_dict.get('pincode', ''),pincode_dict.get('sn', ''))
 
                         # server side check.
-                        if drive_query(pincode_dict.get('pincode', ''),pincode_dict.get('sn', '')):
+                        if repo_query(pincode_dict.get('pincode', ''),pincode_dict.get('sn', '')):
                             display_pincode_to_user(pincode_dict.get('pincode', ''), password=pincode_dict.get('password', ''))
                             is_get_pincode = True
                         else:
@@ -277,7 +277,7 @@ def generate_pincode():
 
                     if not is_get_pincode:
                         # get pincode again.
-                        is_get_pincode = drive_register(drive_dbo, pincode_dbo)
+                        is_get_pincode = repo_register(repo_dbo, pincode_dbo)
                         if not is_get_pincode:
                             error_msg = "Can't connect to dropboxlike register server, please try again later"
 
@@ -293,7 +293,7 @@ def generate_pincode():
                 raise
 
         else:
-            # drive registered.
+            # repo registered.
             ret = True
             pass
     except sqlite3.OperationalError as error:
@@ -396,7 +396,7 @@ def load_config_file():
     return ret
 
 
-def driverconfig():
+def config_repo():
     ret = False
     if load_config_file():
         # reload settings.
@@ -405,4 +405,4 @@ def driverconfig():
     return ret
 
 if __name__ == "__main__":
-    driverconfig()
+    config_repo()

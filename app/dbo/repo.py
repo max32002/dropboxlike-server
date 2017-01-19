@@ -4,13 +4,13 @@ from app.dbo.basetable import BaseTable
 
 #data object for Drive
 #############################################################
-class DboDrive(BaseTable):
-    sql_return_fields = "drive_token,title,status"
-    sql_table_name = "drive"
-    sql_primary_key = "drive_token"
+class DboRepo(BaseTable):
+    sql_return_fields = "repo_token,title,status"
+    sql_table_name = "repo"
+    sql_primary_key = "repo_token"
     sql_create_table = '''
-CREATE TABLE IF NOT EXISTS `drive` (
-`drive_token`   TEXT NOT NULL PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS `repo` (
+`repo_token`   TEXT NOT NULL PRIMARY KEY,
 `title`   TEXT NULL,
 `status` INTEGER NULL,
 `createdTime` DATETIME NULL
@@ -25,12 +25,12 @@ CREATE TABLE IF NOT EXISTS `drive` (
     # return:
     #       False: add fail.
     #       True: add successfully.
-    def add(self, title, drive_token):
+    def add(self, title, repo_token):
         result = False
         try:
             # insert master
-            sql = "INSERT INTO drive (title, drive_token, status,createdTime) VALUES (?,?, 0,datetime('now'));"
-            cursor = self.conn.execute(sql, (title, drive_token,))
+            sql = "INSERT INTO repo (title, repo_token, status,createdTime) VALUES (?,?, 0,datetime('now'));"
+            cursor = self.conn.execute(sql, (title, repo_token,))
 
             self.conn.commit()
             result = True
