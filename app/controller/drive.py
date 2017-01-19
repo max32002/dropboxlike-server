@@ -51,7 +51,7 @@ class DriveClaimAuthHandler(BaseHandler):
                 pass
 
         pincode = None
-        password = None
+        serialnumber = None
         request_id = None
         client_md5 = None
         drive_title = ""
@@ -61,8 +61,8 @@ class DriveClaimAuthHandler(BaseHandler):
                 try :
                     if 'pincode' in _body:
                         pincode = _body['pincode'][:10]
-                    if 'password' in _body:
-                        password = _body['password'][:20]
+                    if 'serialnumber' in _body:
+                        serialnumber = _body['serialnumber'][:20]
                     if 'request_id' in _body:
                         request_id = _body['request_id']
                     if 'client_md5' in _body:
@@ -86,8 +86,8 @@ class DriveClaimAuthHandler(BaseHandler):
                     errorCode = 1010
                     is_pass_check = False
 
-            if password is None:
-                errorMessage = "Password empty"
+            if serialnumber is None:
+                errorMessage = "serialnumber empty"
                 errorCode = 1011
                 is_pass_check = False
 
@@ -115,7 +115,7 @@ class DriveClaimAuthHandler(BaseHandler):
             # [TODO]: Password brute-force attack.
             x_real_ip = self.request.headers.get("X-Real-IP")
             remote_ip = self.request.remote_ip if not x_real_ip else x_real_ip
-            log_ret = pincode_log_dbo.add(pincode,password,request_id,client_md5,remote_ip)
+            log_ret = pincode_log_dbo.add(pincode,serialnumber,request_id,client_md5,remote_ip)
             #print "log_ret", log_ret
             if not log_ret:
                 errorMessage = "claim_auth log fail"
@@ -123,17 +123,16 @@ class DriveClaimAuthHandler(BaseHandler):
                 is_pass_check = False
                 # insert log fail.
 
-            # check pincode & password
-            
-            #logging.info('token:%s, account:%s, password:%s, remote_ip:%s' % (token, account, password, remote_ip))
+            # check pincode & serialnumber
+            #logging.info('token:%s, account:%s, serialnumber:%s, remote_ip:%s' % (token, account, serialnumber, remote_ip))
 
         # check poken on public server.
         pincode_dict = None
         if is_pass_check:
-            pincode_dict = pincode_dbo.match(pincode,password)
+            pincode_dict = pincode_dbo.match(pincode,serialnumber)
             #print "pincode_dict", pincode_dict
             if pincode_dict is None:
-                errorMessage = "Password not match"
+                errorMessage = "Serialnumber not match"
                 errorCode = 1021
                 is_pass_check = False
 
