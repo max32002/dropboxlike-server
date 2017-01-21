@@ -34,17 +34,17 @@ def repo_register(repo_dbo, pincode_dbo):
             #print "json:", json_obj
             pincode = json_obj.get('pincode','')
             sn = json_obj.get('sn','')
-            password = misc.rand_number(6)
+            serialnumber = misc.rand_number(6)
             #sn = misc.rand_number(16)
             #if len(sn) > 0:
                 # for short-pincode & changeable & GUI support sultion.
                 #display_pincode_to_user(pincode, DEFAULT_REG_WAIT_MINUTES)
 
-            display_pincode_to_user(pincode, password=password)
+            display_pincode_to_user(pincode, serialnumber=serialnumber)
             # clear whole table.
             #repo_dbo.empty()
             pincode_dbo.empty()
-            ret = pincode_dbo.add(pincode,password,sn)
+            ret = pincode_dbo.add(pincode,serialnumber,sn)
 
             # auto pooling, after get pincode.
             # for short-pincode & changeable & GUI support sultion.
@@ -271,12 +271,12 @@ def call_claimed_repo_update_api(repo_token):
                 json_obj = None
     return http_code,json_obj
 
-def display_pincode_to_user(pincode, minutes=None, password=None):
+def display_pincode_to_user(pincode, minutes=None, serialnumber=None):
     if len(pincode) > 0:
         message = ""
         message += "Enter PinCode:'%s'" % (pincode)
-        if not password is None:
-            message += ", Serial Number:'%s'" % (password)
+        if not serialnumber is None:
+            message += ", Serial Number:'%s'" % (serialnumber)
         message += " to your mobile phone"
         if not minutes is None:
             message += " in %d minutes.\n" % (minutes)
@@ -300,11 +300,13 @@ def prepare_reg_json_body():
 
 def generate_pincode():
     ret = False
-    client = sqlite3.connect(options.sys_db)
     repo_dbo = None
     pincode_dbo = None
+    is_need_terminate_app = False
+    is_need_terminate_message = ""
 
     try:
+        client = sqlite3.connect(options.sys_db)
         repo_dbo = DboRepo(client)
         pincode_dbo = DboPincode(client)
         #print "pincode_dbo.rowcount(): %d" % pincode_dbo.rowcount()
@@ -315,14 +317,8 @@ def generate_pincode():
         if repo_dbo.rowcount() == 0:
             # repo empty.
             try:
-                error_msg = ""
                 is_get_pincode = False
-                if pincode_dbo.rowcount() == 0:
-                    # call repo register process - step 1.
-                    is_get_pincode = repo_register(repo_dbo, pincode_dbo)
-                    if not is_get_pincode:
-                        error_msg = "Can't connect to dropboxlike register server, please try again later"
-                else:
+                if pincode_dbo.rowcount() > 0:
                     # pincode/sn exist.
                     # call repo register process - step 2.
                     #pincode_register()
@@ -334,31 +330,33 @@ def generate_pincode():
                         #repo_query(repo_dbo, pincode_dbo, pincode_dict.get('pincode', ''),pincode_dict.get('sn', ''))
 
                         # server side check.
-                        if repo_query(pincode_dict.get('pincode', ''),pincode_dict.get('sn', '')):
-                            display_pincode_to_user(pincode_dict.get('pincode', ''), password=pincode_dict.get('password', ''))
-                            is_get_pincode = True
+                        pincode = pincode_dict.get('pincode', '')
+                        serialnumber = pincode_dict.get('serialnumber', '')
+                        sn = pincode_dict.get('sn', '')
+                        if len(pincode) > 0 and len(serialnumber) > 0 and len(sn) > 0:
+                            if repo_query(pincode,sn):
+                                display_pincode_to_user(pincode, serialnumber=serialnumber)
+                                is_get_pincode = True
+                            else:
+                                # pincode may not exist, try to get NEW pincode again.
+                                pass
                         else:
-                            # get pincode again.
+                            # pincode lost, not save currectly.
                             pass
-
                     else:
-                        # unknown error...
-                        # get pincode again.
-                        #error_msg = "Can't get pincode from database, please delete dropboxlike.db than launch application agage."
+                        # unknown error..., try to get NEW pincode again.
                         pass
 
-                    if not is_get_pincode:
-                        # get pincode again.
-                        is_get_pincode = repo_register(repo_dbo, pincode_dbo)
-                        if not is_get_pincode:
-                            error_msg = "Can't connect to dropboxlike register server, please try again later"
-
                 if not is_get_pincode:
-                    print error_msg
-                    sys.exit()
-                    
+                    # get pincode again.
+                    is_get_pincode = repo_register(repo_dbo, pincode_dbo)
+                    if not is_get_pincode:
+                        is_need_terminate_app = True
+                        is_need_terminate_message = "Can't connect to dropboxlike register server, please try again later"
+
             except sqlite3.OperationalError as error:
                 print("{}.  Please try use add sudo to retry.".format(error))
+                is_need_terminate_app = True
                 #if "{}".format(error)=="[Errno 13] Permission denied":
             except Exception as error:
                 print("{}".format(error))
@@ -372,23 +370,40 @@ def generate_pincode():
             if not repo_dict is None:
                 # server side check.
                 repo_update_ret, error_code = repo_update(repo_dict.get('repo_token',''))
-                if not repo_update_ret:
-                    if error_code == 1020:
-                        # token expiry or deleted.
-                        print "token expiry or deleted."
-                        ret = False
+                if error_code == 1020:
+                    # token expiry or deleted.
+                    #print "token expiry or deleted."
+                    # [TODO] owner is need to know this error!
+                    repo_dbo.empty()
+                    pincode_dbo.empty()
+
+                    is_get_pincode = repo_register(repo_dbo, pincode_dbo)
+                    if not is_get_pincode:
+                        is_need_terminate_message = "Can't connect to dropboxlike register server, please try again later"
+                        is_need_terminate_app = True
+                    ret = False
+                else:
+                    # we allow server works during offline(LAN).
+                    pass
             else:
                 # unknown error...
+                is_need_terminate_message = "Can't connect to dropboxlike register server, please try again later"
+                is_need_terminate_app = True
                 ret = False
                 pass
             
             pass
     except sqlite3.OperationalError as error:
         print("{}.  Please try use add sudo to retry.".format(error))
+        is_need_terminate_app = True
         #if "{}".format(error)=="[Errno 13] Permission denied":
     except Exception as error:
         print("{}".format(error))
         raise
+
+    if is_need_terminate_app:
+        print is_need_terminate_message
+        sys.exit()
 
     return ret
 
