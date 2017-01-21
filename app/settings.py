@@ -36,7 +36,9 @@ def define_app_options():
     define('sys_db', default=sys_db)
 
     define('ignore_token_check_prefix', default=['/1/auth/','/version'])
-    define('claim_uri_prefix', default=['/1/drive/claim_auth'])
+    define('claim_uri_prefix', default=['/1/repo/claim_auth'])
+    #define('api_hostname', 'claimapi.dropboxlike.com')
+    define('api_hostname', '127.0.0.1')
 
     conf_filepath = os.path.join(app_root, 'server.conf')
     #print "config filepath: %s" % conf_filepath

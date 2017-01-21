@@ -61,20 +61,16 @@ def repo_register(repo_dbo, pincode_dbo):
 # solution 2, websocket
 def call_repo_register_api_ws():
     ws = libWSClient.WSClient()
-    #api_hostname = "claim.dropboxlike.com"
-    api_hostname = "127.0.0.1"
     api_reg_pattern = "1/ws_reg"
     body_dict = prepare_reg_json_body()
     sent_data = json.dumps(dict(action="reg",data=body_dict))
-    return ws.connect(api_hostname, api_reg_pattern, data=sent_data)
+    return ws.connect(options.api_hostname, api_reg_pattern, data=sent_data)
 
 
 # solution 1, http get
 def call_repo_register_api():
     api_reg_pattern = "1/repo/reg"
-    #api_hostname = "claim.dropboxlike.com"
-    api_hostname = "127.0.0.1"
-    api_url = "https://%s/%s" % (api_hostname,api_reg_pattern)
+    api_url = "https://%s/%s" % (options.api_hostname,api_reg_pattern)
 
     json_body = json.dumps(prepare_reg_json_body())
     #print json_body
@@ -100,6 +96,57 @@ def call_repo_register_api():
                 json_obj = None
     return http_code,json_obj
 
+
+def repo_update(repo_token):
+    # http get solution.
+    http_code,json_obj = call_claimed_repo_update_api(repo_token)
+    # websocket solution.
+    #http_code,json_obj = call_repo_query_api_ws(pincode, sn, pooling_flag=pooling_flag)
+    error_msg = ""
+    error_code = 0
+    ret = False
+    if http_code > 0:
+        if not json_obj is None:
+            if 'error' in json_obj:
+                error_json = json_obj['error']
+                if error_json:
+                    error_msg = error_json.get('message','')
+                    #print "error_msg:%s" % error_msg
+                    error_code = error_json.get('code',0)
+                    #print "error_msg:%d" % error_code
+
+            if http_code == 200:
+                # for shorten pincode version.
+                #print "save claimed info to local database..."
+
+                # do nothing for now version.
+                ret = True
+                pass
+            else:
+                # for shorten pincode version.
+                """
+                if error_code in range(1000,1100):
+                    # [Too lazy]: assume pincode expire...
+                    #print "Pincode expire, get new pincode..."
+                    repo_register(repo_dbo, pincode_dbo)
+                if error_code == 2000 and not pooling_flag:
+                    # only need pooling one time per client.
+                    # pincode not expire, need pooling at next time.
+                    #print "Start to Pooling... on server side."
+                    if len(sn) > 0:
+                        display_pincode_to_user(pincode)
+
+                    repo_query(repo_dbo, pincode_dbo, pincode, sn, pooling_flag=True)
+                    pass
+                """
+                pass
+        else:
+            print "unknow error, return json empty!"
+            pass
+    else:
+        #print "server is not able be connected or cancel by user"
+        pass
+    return ret, error_code
 
 #def repo_query(repo_dbo, pincode_dbo, pincode, sn, pooling_flag=False):
 def repo_query(pincode, sn, pooling_flag=False):
@@ -157,20 +204,16 @@ def repo_query(pincode, sn, pooling_flag=False):
 # solution 2, websocket
 def call_repo_query_api_ws(pincode, sn, pooling_flag=False):
     ws = libWSClient.WSClient()
-    #api_hostname = "claim.dropboxlike.com"
-    api_hostname = "127.0.0.1"
     api_reg_pattern = "1/ws_reg"
     json_body = {'pincode':pincode, 'sn':sn, 'client_version':options.versionCode}
     sent_data = json.dumps(dict(action="reg_query",data=json_body,pooling_confirmed=pooling_flag))
-    return ws.connect(api_hostname, api_reg_pattern, data=sent_data)
+    return ws.connect(options.api_hostname, api_reg_pattern, data=sent_data)
 
 
 # solution 1, http
 def call_repo_query_api(pincode, sn):
     api_reg_pattern = "1/repo/reg_query"
-    #api_hostname = "claim.dropboxlike.com"
-    api_hostname = "127.0.0.1"
-    api_url = "https://%s/%s" % (api_hostname,api_reg_pattern)
+    api_url = "https://%s/%s" % (options.api_hostname,api_reg_pattern)
     body_dict = prepare_reg_json_body()
     body_dict['pincode']=pincode
     body_dict['sn']=sn
@@ -198,6 +241,35 @@ def call_repo_query_api(pincode, sn):
                 json_obj = None
     return http_code,json_obj
 
+
+def call_claimed_repo_update_api(repo_token):
+    api_reg_pattern = "1/repo/update"
+    api_url = "https://%s/%s" % (options.api_hostname,api_reg_pattern)
+    body_dict = prepare_reg_json_body()
+    body_dict['repo_token']=repo_token
+    json_body = json.dumps(body_dict)
+    #print json_body
+
+    http_obj = libHttp.Http()
+    (new_html_string, http_code) = http_obj.get_http_response_core(api_url, data=json_body)
+    json_obj = None
+    if http_code==200:
+        # direct read the string to json.
+        json_obj = json.loads(new_html_string)
+    else:
+        #print "server return error code: %d" % (http_code,)
+        #print "server return error message: %s" % (new_html_string,)
+        if http_code==400:
+            json_obj = None
+            try :
+                json_obj = json.loads(new_html_string)
+            except ValueError as err:  # includes simplejson.decoder.JSONDecodeError
+                #print('except:%s' % (str(err)))
+                json_obj = None
+            except Exception as err:
+                #print('except:%s' % (str(err)))
+                json_obj = None
+    return http_code,json_obj
 
 def display_pincode_to_user(pincode, minutes=None, password=None):
     if len(pincode) > 0:
@@ -294,7 +366,22 @@ def generate_pincode():
 
         else:
             # repo registered.
+            # check repo_token valid.
             ret = True
+            repo_dict = repo_dbo.first()
+            if not repo_dict is None:
+                # server side check.
+                repo_update_ret, error_code = repo_update(repo_dict.get('repo_token',''))
+                if not repo_update_ret:
+                    if error_code == 1020:
+                        # token expiry or deleted.
+                        print "token expiry or deleted."
+                        ret = False
+            else:
+                # unknown error...
+                ret = False
+                pass
+            
             pass
     except sqlite3.OperationalError as error:
         print("{}.  Please try use add sudo to retry.".format(error))
