@@ -4,6 +4,9 @@ import os
 import errno
 import app.repoconfig
 from tornado.options import options
+from shutil import copyfile
+
+
 
 if __name__ == "__main__":
     ret = app.repoconfig.config_repo(auto_gen_pincode=False)
@@ -11,7 +14,10 @@ if __name__ == "__main__":
     #print "location:", options.storage_access_point
     message = ""
     try :
+        db_location_bak = db_location + ".bak"
         if os.path.exists(db_location):
+            # backup before delete.
+            copyfile(db_location, db_location_bak)
             os.remove(db_location)
         message = "file removed: " + db_location
     except Exception, err:
