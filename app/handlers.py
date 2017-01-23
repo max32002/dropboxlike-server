@@ -100,13 +100,16 @@ class BaseHandler(RequestHandler):
             if len(x_token) > 10 and x_token[:6]=="Token ":
                 # trim begin.
                 x_token = x_token[6:]
-        x_user = None
+        user_dict = None
         user_account = self.db_account.check_token(x_token)
         if not user_account is None:
-            x_user = self.db_account.get_pool_list(user_account)
-            if not x_user is None:
-                x_user['token'] = x_token
-        return x_user
+            user_dict = {}
+            user_dict['account'] = user_account
+            user_dict['token'] = x_token
+            poolid = self.db_account.get_root_pool(user_account)
+            user_dict['poolid'] = poolid
+
+        return user_dict
 
     def get_share_poolid(self, path):
         account     = self.current_user['account']
@@ -131,11 +134,12 @@ class BaseHandler(RequestHandler):
         update_time = utils.get_timestamp()
         delta_poolid = self.current_user['poolid']
 
-        delta_db_path = '%s/history/%s/delta.db' % (options.storage_access_point,delta_poolid)
-        logging.info("owner delta_poolid: %s ... ", delta_poolid)
-        delta_conn = sqlite3.connect(delta_db_path)
-        dbo_delta = DboDelta(delta_conn)
-        dbo_delta.save_log(action,delta,path,from_path,to_path,account,update_time,method,is_dir,size)
+        if not delta_poolid is None:
+            delta_db_path = '%s/history/%s/delta.db' % (options.storage_access_point,delta_poolid)
+            logging.info("owner delta_poolid: %s ... ", delta_poolid)
+            delta_conn = sqlite3.connect(delta_db_path)
+            dbo_delta = DboDelta(delta_conn)
+            dbo_delta.save_log(action,delta,path,from_path,to_path,account,update_time,method,is_dir,size)
 
         # duplicate log for share folder.
         # todo:

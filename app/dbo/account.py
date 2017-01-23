@@ -1,5 +1,9 @@
 ﻿from app.dbo.basetable import BaseTable
+from app.dbo.pool import DboPool
+from app.dbo.pool import DboPoolSubscriber
+from app.dbo import dbconst
 from app.lib import utils
+from app.lib import misc
 import logging
 
 #data object for Account
@@ -14,16 +18,23 @@ CREATE TABLE IF NOT EXISTS `users` (
     `password`  TEXT NOT NULL,
     `title`   TEXT NULL,
     `is_owner` INTEGER,
+    `security_question`   TEXT NULL,
+    `security_answer_md5`   TEXT NULL,
     `createdTime` DATETIME NULL
 );
     '''
     sql_create_index = ['''
     ''']
+
     dbo_token = None
+    dbo_pool = None
+    dbo_pool_subcriber = None
 
     def __init__(self, db_conn):
         BaseTable.__init__(self, db_conn)
         self.dbo_token = DboToken(db_conn)
+        self.dbo_pool = DboPool(db_conn)
+        self.dbo_pool_subcriber = DboPoolSubscriber(db_conn)
 
 
     # return:
@@ -75,19 +86,20 @@ CREATE TABLE IF NOT EXISTS `users` (
     #    account info dict: token valid.
     def check_token( self, token_id):
         ret = None
-        cursor = self.conn.execute('SELECT account FROM token WHERE token=? LIMIT 1', (token_id,))
+        sql = 'SELECT account FROM token WHERE token=? LIMIT 1'
+        cursor = self.conn.execute(sql, (token_id,))
         for row in cursor:
             ret=row[0]
         return ret
 
-    def get_pool_list( self, account):
-        out_dic = None
+    def get_root_pool( self, account):
+        ret = None
         for row in cursor:
-            sql = 'SELECT * FROM pool WHERE ownerid = ?'
+            sql = 'SELECT poolid FROM pool WHERE ownerid = ? and is_root=1 LIMIT 1'
             cursor = self.conn.execute(sql, (account,))
-            if not cursor is None:
-                out_dic = self.get_dict_by_cursor(cursor)
-        return out_dic 
+            for row in cursor:
+                ret=row[0]
+        return ret 
 
 
     # return:
@@ -95,42 +107,35 @@ CREATE TABLE IF NOT EXISTS `users` (
     #    else: database error code.
     def save_token( self, token_id, account, ip_address):
         result = False
-        out_dic = {}
-        out_dic['error_code'] = ''
-        out_dic['rowcount'] = 0
         try:
             sql = "INSERT INTO token (token, account, ip_address, create_datetime) VALUES (?, ?, ?, ?)"
             self.conn.execute(sql, (token_id, account, ip_address, utils.get_timestamp(),))
             self.conn.commit()
             result = True
         except Exception as error:
+            logging.error("sqlite error: %s", "{}".format(error))
             #except sqlite3.IntegrityError:
             #except sqlite3.OperationalError, msg:
             #print("Error: {}".format(error))
-            out_dic['error_code'] = error.args[0]
-            out_dic['error_message'] = "{}".format(error)
             #raise
         return result
 
 
     # return:
-    # (is_cross_owner_pool, poolid)
-    #  is_cross_owner_pool: <True, False>
-    #  poolid: pool id
+    #   (is_cross_owner_pool, poolid)
+    #   is_cross_owner_pool: <True, False>
+    #   poolid: pool id
     #
-    #     PS1: each account should only have a owner(status=10) pool.
-    #     PS2: only need to check shared (status=11) pool.
-    #     PS3: shared(status=11) pool need to know parent folder is disappear! (move or delete action).
+    #     PS1: each account should only have a owner(status=1) pool.
+    #     PS2: only need to check shared (status=100) pool.
+    #     PS3: shared(status=100) pool need to know parent folder is disappear! (move or delete action).
     #     PS4: copy command is not allow to do overwrite, so, only delete command effect share folder in sub-folder.
     def find_share_poolid( self, account, path):
         result = None
         is_cross_owner_pool = False
-        out_dic = {}
-        out_dic['error_code'] = ''
-        out_dic['rowcount'] = 0
         try:
-            sql = "SELECT poolid,localpoolname FROM users_pool WHERE account=? AND status=11"
-            cursor = self.conn.execute(sql, (account,))
+            sql = "SELECT poolid,localpoolname FROM users_pool WHERE account=? AND status>=?"
+            cursor = self.conn.execute(sql, (account,dbconst.POOL_STATUS_SHARED))
             for row in cursor:
                 db_path = row[1] + "/"
                 input_path = path + "/"
@@ -153,11 +158,33 @@ CREATE TABLE IF NOT EXISTS `users` (
             #except sqlite3.IntegrityError:
             #except sqlite3.OperationalError, msg:
             #print("Error: {}".format(error))
-            out_dic['error_code'] = error.args[0]
-            out_dic['error_message'] = "{}".format(error)
-            logging.info("sqlite error: %s", "{}".format(error))
+            logging.error("sqlite error: %s", "{}".format(error))
             #raise
         return (is_cross_owner_pool, result)
+
+
+
+    # return:
+    #       False: add fail.
+    #       True: add successfully.
+    def security_update(self, account, security_question, security_answer):
+        result = False
+        try:
+            # insert master
+            security_answer_md5 = misc.md5_hash(security_answer)
+            sql = "UPDATE users set security_question=?, security_answer_md5=? WHERE account=?;"
+            cursor = self.conn.execute(sql, (security_question, security_answer_md5, account))
+            self.conn.commit()
+            result = True
+        except Exception as error:
+            #except sqlite3.IntegrityError:
+            #except sqlite3.OperationalError, msg:
+            #print("Error: {}".format(error))
+            logging.error("sqlite error: %s", "{}".format(error))
+            #logging.error("sql: %s", "{}".format(sql))
+            #raise
+        return result
+
 
 
 

@@ -9,6 +9,7 @@ if __name__ == "__main__":
         (r'/server_info', 'app.controller.VersionHandler'),
         (r'/1/auth/token', 'app.controller.AuthHandler'),
         (r'/1/repo/claim_auth', 'app.controller.RepoClaimAuthHandler'),
+        (r'/1/repo/security_update', 'app.controller.RepoSecurityUpdateHandler'),
         (r'/1/files_put(.*)', 'app.controller.FilesHandler'),
         (r'/1/files(.*)', 'app.controller.FilesHandler'),
         (r'/1/chunked_upload(.*)', 'app.controller.ChunkUploadHandler'),

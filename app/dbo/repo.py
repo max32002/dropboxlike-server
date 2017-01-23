@@ -42,4 +42,3 @@ CREATE TABLE IF NOT EXISTS `repo` (
             #logging.error("sql: %s", "{}".format(sql))
             #raise
         return result
-

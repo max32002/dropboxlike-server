@@ -1,4 +1,5 @@
 from app.controller.repo import RepoClaimAuthHandler
+from app.controller.repo_security import RepoSecurityUpdateHandler
 from app.controller.auth import AuthHandler
 from app.controller.files import FilesHandler
 from app.controller.files import ChunkUploadHandler
