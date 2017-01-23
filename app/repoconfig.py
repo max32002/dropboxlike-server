@@ -498,12 +498,14 @@ def load_config_file():
     return ret
 
 
-def config_repo():
+# PS: set auto_gen_pincode=False to load settings only.
+def config_repo(auto_gen_pincode=True):
     ret = False
     if load_config_file():
         # reload settings.
         settings.define_app_options()
-        ret = generate_pincode()
+        if auto_gen_pincode:
+            ret = generate_pincode()
     return ret
 
 if __name__ == "__main__":
