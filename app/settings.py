@@ -35,7 +35,7 @@ def define_app_options():
     sys_db = os.path.join(options.storage_access_point, 'dropboxlike.db')
     define('sys_db', default=sys_db)
 
-    define('ignore_token_check_prefix', default=['/1/auth/','/version'])
+    define('ignore_token_check_prefix', default=['/1/auth/','/server_info'])
     define('claim_uri_prefix', default=['/1/repo/claim_auth'])
     #define('api_hostname', 'api.dropboxlike.com')
     define('api_hostname', '127.0.0.1')

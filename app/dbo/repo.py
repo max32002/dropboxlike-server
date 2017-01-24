@@ -5,14 +5,13 @@ from app.dbo.basetable import BaseTable
 #data object for Drive
 #############################################################
 class DboRepo(BaseTable):
-    sql_return_fields = "repo_token,title,status"
+    sql_return_fields = "repo_token,title"
     sql_table_name = "repo"
     sql_primary_key = "repo_token"
     sql_create_table = '''
 CREATE TABLE IF NOT EXISTS `repo` (
 `repo_token`   TEXT NOT NULL PRIMARY KEY,
 `title`   TEXT NULL,
-`status` INTEGER NULL,
 `createdTime` DATETIME NULL
 );
     '''
@@ -29,8 +28,8 @@ CREATE TABLE IF NOT EXISTS `repo` (
         result = False
         try:
             # insert master
-            sql = "INSERT INTO repo (title, repo_token, status,createdTime) VALUES (?,?, 0,datetime('now'));"
-            cursor = self.conn.execute(sql, (title, repo_token,))
+            sql = "INSERT INTO repo (title, repo_token,createdTime) VALUES (?,?,datetime('now'));"
+            cursor = self.conn.execute(sql, (title, repo_token))
 
             self.conn.commit()
             result = True

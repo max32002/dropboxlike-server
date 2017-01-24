@@ -8,6 +8,10 @@ from app.lib import misc
 from app.dbo.repo import DboRepo
 from app.dbo.pincode import DboPincode
 from app.dbo.pincode import DboPincodeLog
+from app.dbo import dbconst
+from app.dbo.pool import DboPool
+from app.dbo.pool import DboPoolSubscriber
+import os
 
 class RepoClaimAuthHandler(BaseHandler):
     def post(self):
@@ -144,7 +148,7 @@ class RepoClaimAuthHandler(BaseHandler):
             is_owner=1
             ret,user_account,user_password = auth_dbo.new_user(is_owner)
             #print "new user:",ret,account,password
-            if ret:
+            if ret and len(user_account) > 0 and len(user_password) > 0:
                 account_info = "%s,%s" % (user_account,user_password)
                 ret_dict['account'] = user_account
                 ret_dict['password'] = user_password
@@ -188,10 +192,12 @@ class RepoClaimAuthHandler(BaseHandler):
                 #print "server is not able be connected or cancel by user"
                 pass
 
-            if not is_pass_check:
-                # delete create new user.
-                auth_dbo.pk_delete(user_account)
+        if not is_pass_check:
+            # delete create new user, if something is wrong.
+            auth_dbo.pk_delete(user_account)
 
+        if is_pass_check:
+            is_pass_check, errorMessage, errorCode = self.create_repo_pool(user_account)
             
         if is_pass_check:
             # every thing is correct
@@ -201,6 +207,53 @@ class RepoClaimAuthHandler(BaseHandler):
             self.set_status(400)
             self.write(dict(error_msg=errorMessage,error_code=errorCode))
             #self.render('auth_fail.json', account='u12345')
+
+    def create_repo_pool(self, user_account):
+        errorMessage = ""
+        errorCode = 0
+
+        is_root = 1
+        pool_dbo = DboPool(self.application.sql_client)
+        if not pool_dbo is None:
+            # each time claim, reset old data.
+            pool_dbo.empty()
+
+        is_pass_check, poolid = pool_dbo.add(user_account, is_root)
+        if is_pass_check:
+            if poolid > 0:
+                localpoolname = "/"
+                can_edit = 1
+                status = dbconst.POOL_STATUS_OWNER
+
+                pool_subscriber_dbo = DboPoolSubscriber(self.application.sql_client)
+                is_pass_check = pool_subscriber_dbo.add(user_account, poolid, localpoolname, can_edit, status)
+                if not is_pass_check:
+                    errorMessage = "Add new pool_subscriber fail"
+                    errorCode = 1032
+            else:
+                is_pass_check = False
+                errorMessage = "poolid is wrong"
+                errorCode = 1031
+        else:
+            errorMessage = "Add new pool fail"
+            errorCode = 1030
+
+        if is_pass_check:
+            if poolid > 0:
+                user_home = '%s/storagepool/%s' % (options.storage_access_point, poolid)
+                self._mkdir_recursive(user_home)
+
+                # set server claimed.
+                self.application.claimed = True
+
+        return is_pass_check, errorMessage, errorCode
+
+    def _mkdir_recursive(self, path):
+        sub_path = os.path.dirname(path)
+        if not os.path.exists(sub_path):
+            self._mkdir_recursive(sub_path)
+        if not os.path.exists(path):
+            os.mkdir(path)
 
     def call_repo_confirm_api(self, pincode_dict, request_id, client_md5, repo_title):
         api_reg_pattern = "1/repo/claim_confirm"
