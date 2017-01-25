@@ -205,7 +205,7 @@ class RepoClaimAuthHandler(BaseHandler):
             self.write(ret_dict)
         else:
             self.set_status(400)
-            self.write(dict(error_msg=errorMessage,error_code=errorCode))
+            self.write(dict(error=dict(message=errorMessage,code=errorCode)))
             #self.render('auth_fail.json', account='u12345')
 
     def create_repo_pool(self, user_account):

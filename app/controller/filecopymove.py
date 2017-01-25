@@ -82,6 +82,7 @@ class FileCopyMoveHandler(BaseHandler):
         else:
             self.set_status(status_code)
             self.write(error_dict)
+            #self.write(dict(error=dict(message=errorMessage,code=errorCode)))
 
     def _createFolder(self, directory_name):
         if not os.path.exists(directory_name):

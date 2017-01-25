@@ -77,6 +77,7 @@ class FileDeleteHandler(BaseHandler):
         else:
             self.set_status(status_code)
             self.write(error_dict)
+            # self.write(dict(error=dict(message=errorMessage,code=errorCode)))
 
     def _deleteThumbnails(self, path):
         if os.path.isfile(real_path):

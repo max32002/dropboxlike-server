@@ -29,6 +29,7 @@ class DeltaHandler(BaseHandler):
         else:
             self.set_status(status_code)
             self.write(error_dict)
+            #self.write(dict(error=dict(message=errorMessage,code=errorCode)))
 
     def get_delta(self, cursor):
 

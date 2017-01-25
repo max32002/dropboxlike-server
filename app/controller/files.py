@@ -32,7 +32,8 @@ class FilesHandler(BaseHandler):
 
         if len(path) < 0:
             status_code = 400
-            error_dict = dict(error_msg='path is empty.')
+            errorCode = 1010
+            errorMessage = 'path is empty.'
         
         if status_code == 200:
             real_path = os.path.abspath(os.path.join(self.user_home, path))
@@ -41,12 +42,14 @@ class FilesHandler(BaseHandler):
         if status_code == 200:
             if not os.path.exists(real_path):
                 status_code = 400
-                error_dict = dict(error_msg='path is not exist.')
+                errorCode = 1011
+                errorMessage = 'path is not exist.'
             else:
                 # path exist.
                 if not os.path.isfile(real_path):
                     status_code = 400
-                    error_dict = dict(error_msg='path is not file.')
+                    errorCode = 1012
+                    errorMessage = 'path is not file.'
 
         # Check permission
         # todo: ...
@@ -58,7 +61,7 @@ class FilesHandler(BaseHandler):
             self._downloadData(real_path)
         else:
             self.set_status(status_code)
-            self.write(error_dict)
+            self.write(dict(error=dict(message=errorMessage,code=errorCode)))
 
     def _downloadData(self, real_path):
         head, tail = os.path.split(real_path)
