@@ -8,7 +8,7 @@ import logging
 #data object for Account
 #############################################################
 class DboAccount(BaseTable):
-    sql_return_fields = "account,password,title,is_owner"
+    sql_return_fields = "account,password,title,is_owner,account_sn,security_answer_md5"
     sql_table_name = "users"
     sql_primary_key = "account"
     sql_create_table = '''
@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     `password`  TEXT NOT NULL,
     `title`   TEXT NULL,
     `is_owner` INTEGER,
+    `account_sn`   TEXT NULL,
     `security_question`   TEXT NULL,
     `security_answer_md5`   TEXT NULL,
     `createdTime` DATETIME NULL
@@ -121,15 +122,54 @@ CREATE TABLE IF NOT EXISTS `users` (
         return self.dbo_pool_subcriber.find_share_poolid(account, path)
 
     # return:
-    #       False: add fail.
-    #       True: add successfully.
+    #       False: update fail.
+    #       True: update successfully.
+    def account_sn_update(self, account, account_sn):
+        result = False
+        try:
+            sql = "UPDATE users set account_sn=? WHERE account=?;"
+            cursor = self.conn.execute(sql, (account_sn, account))
+            self.conn.commit()
+            result = True
+        except Exception as error:
+            #except sqlite3.IntegrityError:
+            #except sqlite3.OperationalError, msg:
+            #print("Error: {}".format(error))
+            logging.error("sqlite error: %s", "{}".format(error))
+            #logging.error("sql: %s", "{}".format(sql))
+            #raise
+        return result
+
+    # return:
+    #       False: update fail.
+    #       True: update successfully.
     def security_update(self, account, security_question, security_answer):
         result = False
         try:
-            # insert master
             security_answer_md5 = misc.md5_hash(security_answer)
             sql = "UPDATE users set security_question=?, security_answer_md5=? WHERE account=?;"
             cursor = self.conn.execute(sql, (security_question, security_answer_md5, account))
+            self.conn.commit()
+            result = True
+        except Exception as error:
+            #except sqlite3.IntegrityError:
+            #except sqlite3.OperationalError, msg:
+            #print("Error: {}".format(error))
+            logging.error("sqlite error: %s", "{}".format(error))
+            #logging.error("sql: %s", "{}".format(sql))
+            #raise
+        return result
+
+
+    # return:
+    #       False: reset fail.
+    #       True: reset successfully.
+    def reset_all_security_question(self):
+        result = False
+        try:
+            sql = "UPDATE users set security_question=null, security_answer_md5=null;"
+            #print "sql:",sql
+            cursor = self.conn.execute(sql)
             self.conn.commit()
             result = True
         except Exception as error:

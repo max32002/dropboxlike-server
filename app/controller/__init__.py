@@ -5,6 +5,7 @@ from app.controller.files import FilesHandler
 from app.controller.files import ChunkUploadHandler
 from app.controller.files import CommitUploadHandler
 from app.controller.account_info import AccountInfoHandler
+from app.controller.account_info import AccountSecurityQuestionHandler
 from app.controller.cursor import CursorHandler
 from app.controller.delta import DeltaHandler
 from app.controller.metadata import MetaHandler

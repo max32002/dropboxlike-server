@@ -177,6 +177,9 @@ class RepoClaimAuthHandler(BaseHandler):
                     repo_dbo.empty()
                     is_pass_check = repo_dbo.add(repo_title, repo_token)
 
+                    # update account_sn
+                    is_pass_check = auth_dbo.account_sn_update(user_account, account_sn)
+
                 if http_code >= 400 and http_code <= 403 and not json_obj is None:
                     # by pass the error message
                     is_pass_check = False

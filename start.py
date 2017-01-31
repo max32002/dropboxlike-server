@@ -15,6 +15,7 @@ if __name__ == "__main__":
         (r'/1/chunked_upload(.*)', 'app.controller.ChunkUploadHandler'),
         (r'/1/commit_chunked_upload(.*)', 'app.controller.CommitUploadHandler'),
         (r'/1/account/info', 'app.controller.AccountInfoHandler'),
+        (r'/1/account/security_question', 'app.controller.AccountSecurityQuestionHandler'),
         (r'/1/delta', 'app.controller.DeltaHandler'),
         (r'/1/delta/latest_cursor', 'app.controller.CursorHandler'),
         (r'/1/longpoll_delta', 'app.controller.DeltaHandler'),

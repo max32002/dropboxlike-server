@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS `pool` (
             sql = "INSERT INTO pool (ownerid,is_root,createdTime) VALUES (?,?,datetime('now'));"
             cursor = self.conn.execute(sql, (ownerid, is_root,))
             lastrowid = cursor.lastrowid
-            print "lastrowid", lastrowid
+            #print "lastrowid", lastrowid
             self.conn.commit()
             result = True
         except Exception as error:
