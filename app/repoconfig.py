@@ -5,6 +5,11 @@ import os
 import sqlite3
 from dbo.repo import DboRepo
 from dbo.pincode import DboPincode
+from dbo.pool import DboPool
+from dbo.pool import DboPoolSubscriber
+from dbo.account import DboAccount
+from dbo.account import DboToken
+
 from tornado.options import options
 
 from tornado.util import basestring_type, exec_in
@@ -374,8 +379,9 @@ def generate_pincode():
                     # token expiry or deleted.
                     #print "token expiry or deleted."
                     # [TODO] owner is need to know this error!
-                    repo_dbo.empty()
-                    pincode_dbo.empty()
+                    #repo_dbo.empty()
+                    #pincode_dbo.empty()
+                    reset_database(client)
 
                     is_get_pincode = repo_register(repo_dbo, pincode_dbo)
                     if not is_get_pincode:
@@ -406,6 +412,23 @@ def generate_pincode():
         sys.exit()
 
     return ret
+
+def reset_database(client):
+    if not client is None:
+        print "Site is unclaimed, database need be reset!"
+        repo_dbo = DboRepo(client)
+        pincode_dbo = DboPincode(client)
+        pool_dbo = DboPool(client)
+        pool_subscriber_dbo = DboPoolSubscriber(client)
+        account_dbo = DboAccount(client)
+        token_dbo = DboToken(client)
+
+        repo_dbo.empty()
+        pincode_dbo.empty()
+        pool_dbo.empty()
+        pool_subscriber_dbo.empty()
+        account_dbo.empty()
+        token_dbo.empty()
 
 
 def read_properties(filename, delimiter=':'):
