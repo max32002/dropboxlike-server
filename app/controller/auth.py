@@ -45,7 +45,6 @@ class AuthHandler(BaseHandler):
             remote_ip = self.request.remote_ip if not x_real_ip else x_real_ip
 
             #logging.info('token:%s, account:%s, password:%s, remote_ip:%s' % (token, account, password, remote_ip))
-            self.set_header('X-Subject-Token',token)
             auth_dbo.save_token(token,account,remote_ip)
             self.render('auth.json', token=token, account=account)
         else:

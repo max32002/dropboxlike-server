@@ -51,7 +51,7 @@ class BaseHandler(RequestHandler):
                 # only able to access claim API.
                 if not is_claim_uri:
                     # block all access.
-                    error_code = 401
+                    error_code = 403
             else:
                 # claimed.
                 if is_claim_uri:
