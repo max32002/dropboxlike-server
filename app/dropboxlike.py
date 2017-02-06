@@ -19,6 +19,8 @@ from app.dbo.schema_version import DboSchemaVersion
 #import settings
 import app.repoconfig
 
+from handlers import MyErrorHandler
+
 class MaxDropboxLikeWeb(object):
     def get_settings(self, proj_template_path, proj_static_paths):
         #settings.define_app_options()
@@ -33,6 +35,8 @@ class MaxDropboxLikeWeb(object):
             ])
 
         return {
+            'default_handler_class': MyErrorHandler,
+            'default_handler_args': dict(status_code=404),
             'template_loader': JinjaLoader(loader=loader, auto_escape=False),
             'debug': options.debug,
             'claimed': claimed

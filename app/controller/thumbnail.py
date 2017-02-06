@@ -1,13 +1,22 @@
 from app.handlers import BaseHandler
-import uuid
 import logging
 import json
 from app.lib import utils
+from app.controller.thumbnail_manager import ThumbnailManager
 
-class AuthHandler(BaseHandler):
-    def post(self):
+class ThumbnailHandler(BaseHandler):
+    thumbnail_manager = None
+
+    def open_thumbnail(self):
+        if self.thumbnail_manager is None:
+            # open thumbnail database
+            db_path = '%s/thumbnail.db' % (options.storage_access_point)
+            logging.info("thumbnail db: %s ... ", db_path)
+            thumbnail_client = sqlite3.connect(db_path)
+            self.thumbnail_manager = ThumbnailManager(thumbnail_client)
+
+    def get(self):
         self.set_header('Content-Type','application/json')
-        auth_dbo = self.db_account
 
         #logging.info('body:%s' % (self.request.body))
         _body = None
@@ -68,23 +77,12 @@ class AuthHandler(BaseHandler):
                     errorCode = 1013
                     is_pass_check = False
 
-                    
         if is_pass_check:
-            is_pass_check = auth_dbo.login(account, password)
-            if not is_pass_check:
-                errorMessage = "password incorrect."
-                errorCode = 1020
-
-        if is_pass_check:
-            token = utils.get_token()
-            while auth_dbo.pk_exist(token):
-                token = utils.get_token()
-
             x_real_ip = self.request.headers.get("X-Real-IP")
             remote_ip = self.request.remote_ip if not x_real_ip else x_real_ip
 
             #logging.info('token:%s, account:%s, password:%s, remote_ip:%s' % (token, account, password, remote_ip))
-            auth_dbo.save_token(token,account,remote_ip)
+            #auth_dbo.save_token(token,account,remote_ip)
             ret_dict = {'access_token': token, 'account':account}
             self.write(ret_dict)
             #self.render('auth.json', token=token, account=account)

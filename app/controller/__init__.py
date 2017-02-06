@@ -9,6 +9,7 @@ from app.controller.account_info import AccountSecurityQuestionHandler
 from app.controller.cursor import CursorHandler
 from app.controller.delta import DeltaHandler
 from app.controller.metadata import MetaHandler
+from app.controller.thumbnail import ThumbnailHandler
 from app.controller.favorite import FavoriteHandler
 from app.controller.filecopymove import FileCopyHandler
 from app.controller.filecopymove import FileMoveHandler

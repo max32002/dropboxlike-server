@@ -20,6 +20,7 @@ if __name__ == "__main__":
         (r'/1/delta/latest_cursor', 'app.controller.CursorHandler'),
         (r'/1/longpoll_delta', 'app.controller.DeltaHandler'),
         (r'/1/metadata(.*)', 'app.controller.MetaHandler'),
+        (r'/1/thumbnails(.*)', 'app.controller.ThumbnailHandler'),
         (r'/1/favorite(.*)', 'app.controller.FavoriteHandler'),
         (r'/1/fileops/copy', 'app.controller.FileCopyHandler'),
         (r'/1/fileops/create_folder', 'app.controller.FileCreateFolderHandler'),

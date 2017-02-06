@@ -1,37 +1,21 @@
 #!/usr/bin/env python
 #fileencoding=utf-8
 
-import re
-import time
-import random
-import string
-import hashlib
 import logging
 
 from tornado.web import RequestHandler
 from tornado.web import HTTPError
-from tornado.escape import json_decode
+from tornado.web import ErrorHandler
 from tornado.options import options
 
-from bson.json_util import dumps, loads
-from bson.objectid import ObjectId
-
-from app.lib import data_file
-from app.lib import utils
 from app.dbo.account import DboAccount
-from app.dbo.delta import DboDelta
-
-from app.controller.meta_manager import MetaManager
-from app.controller.thumbnail_manager import ThumbnailManager
 
 import sqlite3
 import os
 
 class BaseHandler(RequestHandler):
     allow_anony = False
-    user_home = None
-    metadata_manager = None
-    thumbnail_manager = None
+    current_user = None
 
     def prepare(self):
         uri = self.request.uri
@@ -77,18 +61,15 @@ class BaseHandler(RequestHandler):
                     pass
             else:
                 # token valid.
-                user_home_poolid = None
                 # this is for One server with Many Owner(different home folder).
-                self.user_home = '%s/storagepool/%s' % (options.storage_access_point,self.current_user['poolid'])
+                if not self.current_user['poolid'] is None:
+                    self.user_home = '%s/storagepool/%s' % (options.storage_access_point,self.current_user['poolid'])
         
         if error_code == 0:
             pass
             # pass the premission check.
         else:
             raise HTTPError(error_code)
-
-    def get_main_domain(self):
-        return self.request.host.split(':')[0]
 
     def get_current_user(self):
         #[TODO]
@@ -120,61 +101,6 @@ class BaseHandler(RequestHandler):
             logging.info("share delta_poolid: %s ... path: %s", delta_poolid, path)
         return is_cross_owner_pool, delta_poolid
 
-    def insert_log(self,    action,
-                            delta       = 'Create',
-                            path        = '',
-                            from_path   = '',
-                            to_path     = '',
-                            method      = 'POST',
-                            is_dir      = 0,
-                            size        = 0
-                            ):
-
-        account     = self.current_user['account']
-        update_time = utils.get_timestamp()
-        delta_poolid = self.current_user['poolid']
-
-        if not delta_poolid is None:
-            delta_db_path = '%s/history/%s/delta.db' % (options.storage_access_point,delta_poolid)
-            logging.info("owner delta_poolid: %s ... ", delta_poolid)
-            delta_conn = sqlite3.connect(delta_db_path)
-            dbo_delta = DboDelta(delta_conn)
-            dbo_delta.save_log(action,delta,path,from_path,to_path,account,update_time,method,is_dir,size)
-
-        # duplicate log for share folder.
-        # todo:
-        # path need convert to relative with share folder local path.
-        if len(path) > 0:
-            # single path.
-            # todo:
-            #   need handle delete parent event.
-            is_cross_owner_pool, share_delta_poolid = self.get_share_poolid(path)
-            if not share_delta_poolid is None:
-                delta_db_path = '%s/history/%s/delta.db' % (options.storage_access_point,share_delta_poolid)
-                delta_conn = sqlite3.connect(delta_db_path)
-                dbo_delta = DboDelta(delta_conn)
-                dbo_delta.save_log(action,delta,path,from_path,to_path,account,update_time,method,is_dir,size)
-        
-        if len(from_path) > 0 and len(to_path) >0:
-            # double path.
-            # (case 1) for copy event, add files.
-            # (case 2) for move event, from_path and to_path not same pool, do delete / add files event.
-            # (case 3) for move event, from_path and to_path not same pool, do mvoe files event.
-            is_cross_owner_pool, from_share_delta_poolid = self.get_share_poolid(from_path)
-            is_cross_owner_pool, to_share_delta_poolid = self.get_share_poolid(to_path)
-            
-            # (case 1 & case 2)
-            action      = 'UploadFile'
-            delta       = 'Create'
-            
-            # (case 2)
-            action      = 'FileDelete'
-            delta       = 'Delete'
-            
-            # (case 3)
-            # directly by pass owner event.
-            pass
-
 
     def has_argument(self, name):
         return name in self.request.arguments
@@ -183,21 +109,15 @@ class BaseHandler(RequestHandler):
         if status_code == 403:
             self.write('You do not have previlege to view this page.')
             return
-
+            
         if status_code == 401:
             self.write('Unauthorized.')
             return
 
+        if status_code == 404:
+            return
+
         return super(BaseHandler, self).write_error(status_code, **kwargs)
-
-    def is_ajax_request(self):
-        return self.request.headers.get("X-Requested-With") == "XMLHttpRequest"
-
-    def dumps(self, obj):
-        return dumps(obj, ensure_ascii=False, indent=4, sort_keys=True)
-
-    def loads(self, s):
-        return loads(s)
 
     def render(self, template, **kwargs):
         #kwargs['site'] = 'Shire'
@@ -230,7 +150,7 @@ class BaseHandler(RequestHandler):
 
     def open_metadata(self, poolid):
         account = self.current_user['account']
-        if self.metadata_manager is None:
+        if self.metadata_manager is None and not poolid is None:
             # open database.
             db_path = '%s/metadata/%s/metadata.db' % (options.storage_access_point,poolid)
             #logging.info("owner metadata poolid: %s ... ", db_path)
@@ -250,27 +170,9 @@ class BaseHandler(RequestHandler):
         my_dbo = DboAccount(self.application.sql_client)
         return my_dbo
 
-    @property
-    def db_pool(self):
-        my_dbo = DboAccount(self.application.sql_client)
-        return my_dbo
 
-    @property
-    def db_delta(self):
-        my_dbo = None
-        if self.user_delta_db is not None:
-            logging.info("connecting to user delta database %s ...", self.user_delta_db)
-            client = sqlite3.connect(sys_db)
-            my_dbo = DboDelta(client)
-        return my_dbo
-
-
-#################################################################
-## User Administration
-
-def gen_salt():
-    return ''.join(random.choice(string.letters) for i in xrange(16))
-
-def hash_pwd(pwd, salt):
-    return hashlib.sha1(pwd+'|'+salt).hexdigest()[:16]
-
+class MyErrorHandler(ErrorHandler, BaseHandler):
+    """
+    Default handler gonna to be used in case of 404 error
+    """
+    pass

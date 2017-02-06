@@ -96,25 +96,11 @@ CREATE TABLE IF NOT EXISTS `users` (
     def get_root_pool( self, account):
         return self.dbo_pool.get_root_pool(account)
 
-
     # return:
     #       0: insert successfully.
     #    else: database error code.
     def save_token( self, token_id, account, ip_address):
-        result = False
-        try:
-            sql = "INSERT INTO token (token, account, ip_address, create_datetime) VALUES (?, ?, ?, ?)"
-            self.conn.execute(sql, (token_id, account, ip_address, utils.get_timestamp(),))
-            self.conn.commit()
-            result = True
-        except Exception as error:
-            logging.error("sqlite error: %s", "{}".format(error))
-            #except sqlite3.IntegrityError:
-            #except sqlite3.OperationalError, msg:
-            #print("Error: {}".format(error))
-            #raise
-        return result
-
+        return self.dbo_token.add(token_id, account, ip_address)
 
     # return:
     #   (is_cross_owner_pool, poolid)
@@ -197,3 +183,18 @@ CREATE TABLE IF NOT EXISTS `token` (
     PRIMARY KEY(token)
 );
     '''
+
+    def add( self, token_id, account, ip_address):
+        result = False
+        try:
+            sql = "INSERT INTO token (token, account, ip_address, createdTime) VALUES (?, ?, ?, datetime('now'))"
+            self.conn.execute(sql, (token_id, account, ip_address,))
+            self.conn.commit()
+            result = True
+        except Exception as error:
+            logging.error("sqlite error: %s", "{}".format(error))
+            #except sqlite3.IntegrityError:
+            #except sqlite3.OperationalError, msg:
+            #print("Error: {}".format(error))
+            #raise
+        return result

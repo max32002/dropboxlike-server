@@ -8,14 +8,12 @@ import json
 import os
 
 class MetaHandler(BaseHandler):
-    '''!Metadata API Controller'''
-
     def get(self, path):
-        """metadata a path
-        @param path file path
-        @retval Object http response
-        """ 
         self.set_header('Content-Type','application/json')
+
+        is_pass_check = False
+        errorMessage = ""
+        errorCode = 0
 
         path = path.lstrip('/')
         real_path = None
@@ -24,8 +22,6 @@ class MetaHandler(BaseHandler):
         poolid = self.current_user['poolid']
         self.open_metadata(poolid)
 
-        status_code = 200
-        error_dict = None
         status_code, error = self.check_path(path,is_shared_folder)
 
         if status_code == 200:

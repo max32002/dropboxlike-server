@@ -26,14 +26,14 @@ class MetaManager():
         dic_current = self.query(path)
         #logging.info('dic_current:%s' % (dic_current))
         if len(dic_current) > 0:
-            metadata_dic = self.convert_dict(dic_current[0])
+            metadata_dic = self.convert_for_dropboxlike_dict(dic_current[0])
             dic_children = self.dbo_metadata.get_contents(path)
             #print 'dic_children:%s' % (dic_children)
             contents = []
 
             # for small case used.
             for item in dic_children:
-                contents.append(self.convert_dict(item))
+                contents.append(self.convert_for_dropboxlike_dict(item))
             metadata_dic['contents']=contents
             #print 'dic_current:%s' % (metadata_dic)
             #self.write(metadata_dic)
@@ -51,7 +51,7 @@ class MetaManager():
                 iPos = 0
                 for item in dic_children:
                     iPos += 1
-                    self.write(json.dumps(self.convert_dict(item)))
+                    self.write(json.dumps(self.convert_for_dropboxlike_dict(item)))
                     if iPos < dic_children_count:
                         self.write(",")
             self.write(body_item[1])
@@ -60,7 +60,7 @@ class MetaManager():
             pass
             #self.set_status(404)
             #self.write(dict(error_msg='path not found.',error_code=123))
-        #metadata_dic = self.convert_dict()
+        #metadata_dic = self.convert_for_dropboxlike_dict()
 
         return metadata_dic
 
@@ -82,7 +82,7 @@ class MetaManager():
         in_dic['owner'] = self.account
         return in_dic
 
-    def convert_dict(self, tmp_dict):
+    def convert_for_dropboxlike_dict(self, tmp_dict):
         in_dic = {}
         in_dic['path'] = '/' + tmp_dict['path']
         in_dic['comment'] = tmp_dict['comment']
@@ -105,11 +105,11 @@ class MetaManager():
         in_dic['owner'] = tmp_dict['owner']
 
         # for FC client
-        in_dic['root'] = 'File Cruiser'
+        in_dic['root'] = 'D:/'
         in_dic['compress'] = False
         in_dic['encrypt'] = False
         in_dic['thumb_exists'] = True
-        in_dic['icon'] = ( 'folder_public' if tmp_dict['is_dir']==1 else "page_white_acrobat")
+        in_dic['icon'] = ( 'folder_public' if tmp_dict['is_dir']==1 else "page")
         return in_dic
 
     def add(self, path, bytes=0, rev='', mtime='', is_dir=0):

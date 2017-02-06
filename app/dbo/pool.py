@@ -32,9 +32,6 @@ CREATE TABLE IF NOT EXISTS `pool` (
             self.conn.commit()
             result = True
         except Exception as error:
-            #except sqlite3.IntegrityError:
-            #except sqlite3.OperationalError, msg:
-            #print("Error: {}".format(error))
             logging.error("sqlite error: %s", "{}".format(error))
             #logging.error("sql: %s", "{}".format(sql))
             #raise
@@ -43,11 +40,15 @@ CREATE TABLE IF NOT EXISTS `pool` (
 
     def get_root_pool( self, account):
         ret = None
-        for row in cursor:
+        try:
             sql = 'SELECT poolid FROM pool WHERE ownerid = ? and is_root=1 LIMIT 1'
             cursor = self.conn.execute(sql, (account,))
             for row in cursor:
                 ret=row[0]
+        except Exception as error:
+            logging.error("sqlite error: %s", "{}".format(error))
+            #logging.error("sql: %s", "{}".format(sql))
+            #raise
         return ret 
 
 
