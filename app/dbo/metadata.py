@@ -1,13 +1,15 @@
-﻿
+﻿#!/usr/bin/env python
+#encoding=utf-8
 import logging
 from app.dbo.basetable import BaseTable
+from app.dbo.delta import DboDelta
 from app.lib import utils
 import os
 import sqlite3
 
 #############################################################
 class DboMetadata(BaseTable):
-    sql_return_fields = "doc_id,poolid,path,hash,rev,size,is_dir,parent,name,client_modified,server_modified,editor,owner"
+    sql_return_fields = "doc_id,poolid,path,content_hash,rev,size,is_dir,parent,name,client_modified,server_modified,editor,owner"
     sql_table_name = "metadata"
     sql_primary_key = "path"
     sql_create_table = '''
@@ -15,7 +17,7 @@ CREATE TABLE IF NOT EXISTS `metadata` (
     `doc_id`    INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     `poolid`  integer NOT NULL,
     `path`  varchar NOT NULL,
-    `hash`  varchar,
+    `content_hash`  varchar,
     `rev`   varchar,
     `size` integer NOT NULL,
     `is_dir`    integer NOT NULL,
@@ -31,6 +33,12 @@ CREATE TABLE IF NOT EXISTS `metadata` (
     'CREATE INDEX IF NOT EXISTS metadata_parent ON metadata(poolid,parent);',
     ]
     last_transaction_path = None
+
+    dbo_delta = None
+
+    def __init__(self, db_conn):
+        BaseTable.__init__(self, db_conn)
+        self.dbo_delta = DboDelta(db_conn)
 
     # get current path metadata.
     def get_path( self, poolid, path):
@@ -60,7 +68,7 @@ CREATE TABLE IF NOT EXISTS `metadata` (
         out_dic = {}
         out_dic['poolid'] = poolid
         out_dic['path'] = path
-        out_dic['hash'] = ''
+        out_dic['content_hash'] = ''
         out_dic['rev'] = ''
         out_dic['size'] = 0
         out_dic['client_modified'] = utils.get_timestamp()
@@ -119,24 +127,28 @@ CREATE TABLE IF NOT EXISTS `metadata` (
                 if not parent_node is None:
                     if parent_node == "/":
                         parent_node = ""
-                    print "parent_node, check_and_create_parent:", parent_node
+                    #print "parent_node, check_and_create_parent:", parent_node
                     self.check_and_create_parent(poolid, parent_node, in_dic['owner'])
 
-            logging.info("start to insert '%s' to metadata database ...", item_name)
+            #logging.info("start to insert '%s' to metadata database ...", item_name)
 
             try:
-                sql = 'insert into metadata (poolid, path, hash, rev, size, is_dir, parent, name, client_modified, server_modified, editor, owner)'
+                sql = 'insert into metadata (poolid, path, content_hash, rev, size, is_dir, parent, name, client_modified, server_modified, editor, owner)'
                 sql = sql + ' values(?,?,?,?,?,?,?,?,?,?,?,?) '
                 #logging.info("sql: %s", sql)
-                cursor = self.conn.execute(sql, (poolid,path,in_dic['hash'],in_dic['rev'],in_dic['size'],in_dic['is_dir'],parent_node, item_name,in_dic['client_modified'],utils.get_timestamp(),in_dic['owner'],in_dic['owner'],))
+                cursor = self.conn.execute(sql, (poolid,path,in_dic['content_hash'],in_dic['rev'],in_dic['size'],in_dic['is_dir'],parent_node, item_name,in_dic['client_modified'],utils.get_timestamp(),in_dic['editor'],in_dic['owner'],))
                 self.conn.commit()
+
+                if path != "" and cursor.lastrowid > 0:
+                    self.dbo_delta.add_path(tag='folder',poolid=poolid,path=path,doc_id=cursor.lastrowid,account=in_dic['editor'])
+
                 if self.last_transaction_path == path:
                     #logging.info("insert commit at path: {}".format(path))
                     out_dic['lastrowid'] = cursor.lastrowid
                     
             except sqlite3.IntegrityError:
                 ret = False
-                errorMessage = "insert metadata same path twice: {}".format(in_dic['path'])
+                errorMessage = "insert metadata same path twice: {}".format(in_dic['path'].encode('utf-8').strip())
                 errorCode = 2
                 logging.error(errorMessage)
             except Exception as error:
@@ -197,8 +209,8 @@ CREATE TABLE IF NOT EXISTS `metadata` (
             logging.info("update '%s' to metadata database ...", item_name)
 
             sql = 'update metadata set path = ?'
-            if 'hash' in in_dic:
-                sql += ' , hash = \'%s\'' % str(in_dic['hash']).replace("'", "''") 
+            if 'content_hash' in in_dic:
+                sql += ' , content_hash = \'%s\'' % str(in_dic['content_hash']).replace("'", "''") 
             #[TODO]: Revision
             #sql += ' , rev = ?'
             if 'size' in in_dic:
@@ -277,15 +289,15 @@ CREATE TABLE IF NOT EXISTS `metadata` (
                 self.check_and_create_parent(poolid, parent_node, in_dic['editor'])
             logging.info("copy '%s' to metadata database ...", item_name)
 
-            sql = "insert into metadata (poolid, path, comment, shared_flag, hash, rev, size, mtime, lock, is_dir, parent, name, thumbnail, modify_time, editor, owner) "
-            sql += "select ?, 0, 0, hash, '', '', size, mtime, 0, is_dir, 0, ?, ?, thumbnail, modify_time,?,? from metadata where poolid=? and path=?"
+            sql = "insert into metadata (poolid, path, comment, shared_flag, content_hash, rev, size, mtime, lock, is_dir, parent, name, thumbnail, modify_time, editor, owner) "
+            sql += "select ?, 0, 0, content_hash, '', '', size, mtime, 0, is_dir, 0, ?, ?, thumbnail, modify_time,?,? from metadata where poolid=? and path=?"
             self.conn.execute(sql, (poolid, path,parent_node, item_name,in_dic['editor'],in_dic['editor'],poolid,old_path,))
 
             # copy child node path.
             #if out_dic['error'] == '':
             if old_path != path:
-                sql = "insert into metadata (poolid, path, comment, shared_flag, hash, rev, size, mtime, lock, is_dir, parent, name, thumbnail, modify_time, editor, owner) "
-                sql += "select ? || substr(path, length(?)+1), 0, 0, hash, '', '', size, mtime, 0, is_dir, ? || substr(parent, length(?)+1), name, thumbnail, modify_time,?,? from metadata where poolid=? and path like ?"
+                sql = "insert into metadata (poolid, path, comment, shared_flag, content_hash, rev, size, mtime, lock, is_dir, parent, name, thumbnail, modify_time, editor, owner) "
+                sql += "select ? || substr(path, length(?)+1), 0, 0, content_hash, '', '', size, mtime, 0, is_dir, ? || substr(parent, length(?)+1), name, thumbnail, modify_time,?,? from metadata where poolid=? and path like ?"
                 self.conn.execute(sql, (poolid, path,old_path,path,old_path,in_dic['editor'],in_dic['editor'], poolid, old_path+'/%',))
                 #self.conn.commit()
 
@@ -424,7 +436,7 @@ CREATE TABLE IF NOT EXISTS `metadata` (
         out_dic['path'] = ''
         out_dic['comment'] = ''
         out_dic['shared_flag'] = ''
-        out_dic['hash'] = ''
+        out_dic['content_hash'] = ''
         out_dic['rev'] = ''
         out_dic['size'] = ''
         out_dic['mtime'] = ''
@@ -440,13 +452,13 @@ CREATE TABLE IF NOT EXISTS `metadata` (
             path = in_dic['path']
 
         try:
-            cursor = self.execute(' select path, comment, shared_flag, hash, permission, rev, modified, size, mtime, lock, is_dir, name, modify_time from local_metadata where path=? limit 1', (in_dic['path'],))
+            cursor = self.execute(' select path, comment, shared_flag, content_hash, permission, rev, modified, size, mtime, lock, is_dir, name, modify_time from local_metadata where path=? limit 1', (in_dic['path'],))
             row = cursor.fetchone()
 
             out_dic['path']         = row[0]
             out_dic['comment']      = row[1]
             out_dic['shared_flag']  = row[2]
-            out_dic['hash']         = row[3]
+            out_dic['content_hash']         = row[3]
             out_dic['permission']   = row[4]
             out_dic['rev']          = row[5]
             out_dic['thumb_exists'] = row[6]
@@ -492,13 +504,13 @@ CREATE TABLE IF NOT EXISTS `metadata` (
         try:
             db = sqlite3.connect(self.db_path)
             cursor = db.cursor()
-            cursor.execute( ' select path, comment, shared_flag, hash, permission, rev, thumb_exists, modified, size, mtime, lock, is_dir, name, modify_time from local_metadata where path like ?  or path = ?' + order_by_string + limit_string, (in_dic['path'] + '/%',in_dic['path'],) )
+            cursor.execute( ' select path, comment, shared_flag, content_hash, permission, rev, thumb_exists, modified, size, mtime, lock, is_dir, name, modify_time from local_metadata where path like ?  or path = ?' + order_by_string + limit_string, (in_dic['path'] + '/%',in_dic['path'],) )
             #all_rows = cursor.fetchall()
             n = 0
             out_list = []
             #for row in all_rows:
             for row in cursor:
-                sub_dic = {'path':row[0], 'comment':row[1], 'shared_flag':row[2], 'hash':row[3], 'permission':row[4], 'rev':row[5], 'thumb_exists':row[6], 'modified':row[7], 'size':row[8], 'mtime':row[9], 'lock':row[10], 'is_dir':row[11], 'name':row[12], 'modify_time':row[13]}
+                sub_dic = {'path':row[0], 'comment':row[1], 'shared_flag':row[2], 'content_hash':row[3], 'permission':row[4], 'rev':row[5], 'thumb_exists':row[6], 'modified':row[7], 'size':row[8], 'mtime':row[9], 'lock':row[10], 'is_dir':row[11], 'name':row[12], 'modify_time':row[13]}
                 out_list.append(sub_dic)
                 n = n + 1
             out_dic['list'] = out_list
@@ -540,13 +552,13 @@ CREATE TABLE IF NOT EXISTS `metadata` (
         try:
             db = sqlite3.connect(self.db_path)
             cursor = db.cursor()
-            cursor.execute( ' select path, comment, shared_flag, hash, permission, rev, thumb_exists, modified, size, mtime, lock, is_dir, name, modify_time from local_metadata where parent = ?' + order_by_string + limit_string + offset_string, (parent_node,) )
+            cursor.execute( ' select path, comment, shared_flag, content_hash, permission, rev, thumb_exists, modified, size, mtime, lock, is_dir, name, modify_time from local_metadata where parent = ?' + order_by_string + limit_string + offset_string, (parent_node,) )
             #all_rows = cursor.fetchall()
             n = 0
             out_list = []
             #for row in all_rows:
             for row in cursor:
-                sub_dic = {'path':row[0], 'comment':row[1], 'shared_flag':row[2], 'hash':row[3], 'permission':row[4], 'rev':row[5], 'thumb_exists':row[6], 'modified':row[7], 'size':row[8], 'mtime':row[9], 'lock':row[10], 'is_dir':row[11], 'name':row[12], 'modify_time':row[13]}
+                sub_dic = {'path':row[0], 'comment':row[1], 'shared_flag':row[2], 'content_hash':row[3], 'permission':row[4], 'rev':row[5], 'thumb_exists':row[6], 'modified':row[7], 'size':row[8], 'mtime':row[9], 'lock':row[10], 'is_dir':row[11], 'name':row[12], 'modify_time':row[13]}
                 out_list.append(sub_dic)
                 n = n + 1
             out_dic['list'] = out_list

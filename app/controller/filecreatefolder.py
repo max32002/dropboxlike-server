@@ -7,8 +7,6 @@ import os
 from tornado.options import options
 from app.controller.meta_manager import MetaManager
 
-
-
 class FileCreateFolderHandler(BaseHandler):
     metadata_manager = None
 
@@ -89,6 +87,7 @@ class FileCreateFolderHandler(BaseHandler):
             # update metadata. (owner)
             is_pass_check, out_dict, errorMessage, errorCode = self.metadata_manager.add_metadata(path,is_dir=1)
             if not is_pass_check:
+                # client need to check error code 1022, it's folder metadata exist.
                 errorCode = 1020 + errorCode
 
         query_result = None
@@ -110,7 +109,7 @@ class FileCreateFolderHandler(BaseHandler):
         else:
             self.set_status(400)
             self.write(dict(error=dict(message=errorMessage,code=errorCode)))
-            logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
+            #logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
 
     def _createFolder(self, directory_name):
         if not os.path.exists(directory_name):

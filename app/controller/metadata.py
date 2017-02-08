@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+#encoding=utf-8
 from app.handlers import BaseHandler
 from tornado.options import options
 import logging

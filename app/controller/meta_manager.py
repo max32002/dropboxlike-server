@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+#encoding=utf-8
 from tornado.options import options
 import logging
 from app.dbo.metadata import DboMetadata
@@ -98,7 +100,7 @@ class MetaManager():
     def convert_for_dropboxlike_dict(self, tmp_dict):
         in_dic = {}
         in_dic['path'] = '/' + tmp_dict['path']
-        in_dic['hash'] = tmp_dict['hash']
+        in_dic['content_hash'] = tmp_dict['content_hash']
         #in_dic['permission'] = "{"write": True}"ll
         in_dic['permission'] = tmp_dict['permission']
         in_dic['rev'] = tmp_dict['rev']
@@ -112,9 +114,11 @@ class MetaManager():
         in_dic = {}
         in_dic['poolid'] = self.poolid
         in_dic['path'] = path
-        in_dic['hash'] = ''
+        in_dic['content_hash'] = ''
         in_dic['rev'] = rev
         in_dic['size'] = size
+        if client_modified is None:
+            client_modified = utils.get_timestamp()
         in_dic['client_modified'] = client_modified
         in_dic['is_dir'] = is_dir
         in_dic['editor'] = self.account
@@ -125,8 +129,8 @@ class MetaManager():
         in_dic = {}
         in_dic['old_path'] = from_path
         in_dic['path'] = to_path
-        #if not hash is None:
-        #    in_dic['hash'] = '' 
+        #if not content_hash is None:
+        #    in_dic['content_hash'] = '' 
         if not rev is None:
             in_dic['rev'] = rev 
         if not size is None:

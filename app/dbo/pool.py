@@ -1,4 +1,6 @@
-﻿from app.dbo.basetable import BaseTable
+﻿#!/usr/bin/env python
+#encoding=utf-8
+from app.dbo.basetable import BaseTable
 from app.dbo import dbconst
 import logging
 

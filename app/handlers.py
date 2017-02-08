@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 #fileencoding=utf-8
-
 import logging
-
 from tornado.web import RequestHandler
 from tornado.web import HTTPError
 from tornado.web import ErrorHandler

@@ -1,29 +1,30 @@
-﻿import logging
+﻿#!/usr/bin/env python
+#encoding=utf-8
+import logging
 from app.dbo.basetable import BaseTable
+from app.lib import utils
 
 #data object for Account
 #############################################################
 class DboDelta(BaseTable):
-    sql_return_fields = "update_time,action,path,from_path,to_path,method,is_dir,size,account"
+    sql_return_fields = "tag,poolid,path,doc_id,account,update_time"
     sql_table_name = "delta"
     sql_primary_key = "delta_id"
     sql_create_table = '''
 CREATE TABLE IF NOT EXISTS `delta` (
     `delta_id`  INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    `delta`    TEXT,
-    `action`    TEXT,
-    `path`  TEXT,
-    `from_path` TEXT,
-    `to_path`   TEXT,
-    `method`    TEXT,
-    `is_dir`    INTEGER,
-    `size`  INTEGER,
+    `poolid`  INTEGER NOT NULL,
+    `tag`    TEXT NOT NULL,
+    `doc_id`  INTEGER NOT NULL,
+    `path`  TEXT NOT NULL,
     `account`   TEXT NOT NULL,
-    `update_time`   INTEGER
+    `update_time` INTEGER NOT NULL
 );
     '''
     sql_create_index = ['''
-CREATE INDEX IF NOT EXISTS delta_timestamp ON delta(account,update_time);
+CREATE INDEX IF NOT EXISTS delta_timestamp ON delta(poolid,update_time);
+    ''','''
+CREATE INDEX IF NOT EXISTS delta_path ON delta(poolid,path);
     ''']
 
     """
@@ -32,7 +33,6 @@ CREATE INDEX IF NOT EXISTS delta_timestamp ON delta(account,update_time);
                             path        = '',
                             from_path   = '',
                             to_path     = '',
-                            method      = 'POST',
                             is_dir      = 0,
                             size        = 0
                             ):
@@ -84,34 +84,55 @@ CREATE INDEX IF NOT EXISTS delta_timestamp ON delta(account,update_time);
     """
 
     # return:
-    #       0: login fail.
-    #       1: login successfully.
-    def save_log(self,     action, 
-                           delta       = 'Create',
-                           path        = '',
-                           from_path   = '',
-                           to_path     = '',
-                           account     = '',
-                           update_time = 0,
-                           method      = 'POST',
-                           is_dir      = 0,
-                           size        = 0,
-                           ):
-        result = 0
-        out_dic = {}
-        out_dic['error_code'] = ''
-        out_dic['rowcount'] = 0
+    #       True: Save done.
+    #       False: Save fail.
+    def add_path(self,     
+                    tag         = 'file',
+                    poolid      = 0,
+                    path        = '',
+                    doc_id      = 0,
+                    account     = ''
+                    ):
+
+        update_time = utils.get_timestamp()
+        ret = False
+        errorMessage = ""
         try:
-            sql = "INSERT INTO delta (action,delta,path,from_path,to_path,account,update_time,method,is_dir,size) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-            cursor = self.conn.execute(sql, (action,delta,path,from_path,to_path,account,update_time,method,is_dir,size,))
+            sql = "DELETE FROM delta WHERE poolid=? and path=?"
+            cursor = self.conn.execute(sql, (poolid,path,))
+
+            sql = "INSERT INTO delta (tag,poolid,path,doc_id,account,update_time) VALUES (?, ?, ?, ?, ?, ?)"
+            cursor = self.conn.execute(sql, (tag,poolid,path,doc_id,account,update_time,))
             self.conn.commit()
-            out_dic['lastrowid'] = cursor.lastrowid
+            ret = True
         except Exception as error:
             #except sqlite3.IntegrityError:
             #except sqlite3.OperationalError, msg:
             #print("Error: {}".format(error))
-            out_dic['error_code'] = error.args[0]
-            out_dic['error_message'] = "{}".format(error)
-            logging.info("sqlite error: %s", "{}".format(error))
+            errorMessage = "{}".format(error)
+            logging.info("sqlite error: %s", errorMessage)
             #raise
-        return result
+        return ret, errorMessage
+
+
+    # return:
+    #       True: Update as 'deleted' successfully.
+    #       False: Update as 'deleted' fail.
+    def delete_path(self, path='', account = ''):
+
+        update_time = utils.get_timestamp()
+        ret = False
+        errorMessage = ""
+        try:
+            sql = "UPDATE delta set tag='deleted', update_time=? WHERE poolid=? and path=?"
+            cursor = self.conn.execute(sql, (update_time, poolid, path,))
+            self.conn.commit()
+            ret = True
+        except Exception as error:
+            #except sqlite3.IntegrityError:
+            #except sqlite3.OperationalError, msg:
+            #print("Error: {}".format(error))
+            errorMessage = "{}".format(error)
+            logging.info("sqlite error: %s", errorMessage)
+            #raise
+        return ret, errorMessage
