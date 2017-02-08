@@ -91,5 +91,5 @@ class AuthHandler(BaseHandler):
         else:
             self.set_status(401)
             self.write(dict(error=dict(message=errorMessage,code=errorCode)))
-            logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
+            #logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
             #self.render('auth_fail.json', account='u12345')

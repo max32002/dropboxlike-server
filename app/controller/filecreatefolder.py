@@ -1,42 +1,75 @@
+#!/usr/bin/env python
+#encoding=utf-8
 from app.handlers import BaseHandler
 import logging
+import json
 import os
 from tornado.options import options
 from app.controller.meta_manager import MetaManager
 
 
+
 class FileCreateFolderHandler(BaseHandler):
+    metadata_manager = None
 
     def post(self):
-        """!create folder file
-        @param path file path
-        @retval Object http response
-        """ 
-        path = self.get_argument('path')
-        path = path.lstrip('/')
-        real_path = None
-        is_shared_folder = False
+        self.set_header('Content-Type','application/json')
 
-        poolid = self.current_user['poolid']
-        self.open_metadata(poolid)
+        is_pass_check = True
+        errorMessage = ""
+        errorCode = 0
 
-        status_code = 200
-        error_dict = None
-        status_code, error = self.check_path(path,is_shared_folder)
+        if is_pass_check:
+            is_pass_check = False
+            try :
+                _body = json.loads(self.request.body)
+                is_pass_check = True
+            except Exception:
+                errorMessage = "wrong json format"
+                errorCode = 1001
+                pass
 
-        if status_code == 200:
-            real_path = os.path.abspath(os.path.join(self.user_home, path))
-            logging.info('user create real path at:%s' % (real_path))
+        path = None
+        if is_pass_check:
+            is_pass_check = False
+            #logging.info('%s' % (str(_body)))
+            if _body:
+                try :
+                    if 'path' in _body:
+                        path = _body['path']
+                    is_pass_check = True
+                except Exception:
+                    errorMessage = "parse json fail"
+                    errorCode = 1002
 
-        if status_code == 200:
-            if os.path.exists(real_path):
-                status_code = 400
-                error_dict = dict(error_msg='path is exist.')
+        if is_pass_check:
+            ret, errorMessage = self.check_path(path)
+            if not ret:
+                is_pass_check = False
+                errorCode = 1010
 
-        if status_code == 200:
-            self._createFolder(real_path)
+        if is_pass_check:
+            if len(path)==0:
+                errorMessage = "path is empty"
+                errorCode = 1013
+                is_pass_check = False
+                    
+        if is_pass_check:
+            self.metadata_manager = MetaManager(self.application.sql_client, self.current_user, path)
+
+            if os.path.exists(self.metadata_manager.real_path):
+                # path exist
+                errorMessage = "path is exist"
+                errorCode = 1020
+                is_pass_check = False
+
+        if is_pass_check:
+            logging.info('user create real path at:%s' % (self.metadata_manager.real_path))
+
+            #self._createFolder(real_path)
 
             # insert log
+            '''
             action      = 'CreateFolder' 
             delta       = 'Create'
             from_path   = ''
@@ -51,17 +84,33 @@ class FileCreateFolderHandler(BaseHandler):
                 size    = os.stat(real_path).st_size 
                 
             self.insert_log(action,delta,path,from_path,to_path,method,is_dir,size)
+            '''
 
             # update metadata. (owner)
-            self.metadata_manager.add(path,is_dir=1)
+            is_pass_check, out_dict, errorMessage, errorCode = self.metadata_manager.add_metadata(path,is_dir=1)
+            if not is_pass_check:
+                errorCode = 1020 + errorCode
 
-            query_result = self.metadata_manager.query(path)
-            if not query_result is None:
-                self.write(query_result)
+        query_result = None
+        if is_pass_check:
+            # start to get metadata (owner)
+            query_result = self.metadata_manager.query_formated()
+            if query_result is None:
+                errorMessage = "metadata not found"
+                errorCode = 1040
+                is_pass_check = False
+
+                # [TODO]:
+                # real path exist, but database not exist.
+                # reture error or sync database from real path.
+                pass
+
+        if is_pass_check:
+            self.write(query_result)
         else:
-            self.set_status(status_code)
-            self.write(error_dict)
-            #self.write(dict(error=dict(message=errorMessage,code=errorCode)))
+            self.set_status(400)
+            self.write(dict(error=dict(message=errorMessage,code=errorCode)))
+            logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
 
     def _createFolder(self, directory_name):
         if not os.path.exists(directory_name):

@@ -2,53 +2,86 @@ from app.handlers import BaseHandler
 from tornado.options import options
 import logging
 import sqlite3
-from app.dbo.metadata import DboMetadata
+from app.controller.meta_manager import MetaManager
 from app.lib import utils
 import json
 import os
 
-class MetaHandler(BaseHandler):
-    def get(self, path):
+class ListFolderHandler(BaseHandler):
+    metadata_manager = None
+
+    def post(self):
         self.set_header('Content-Type','application/json')
 
-        is_pass_check = False
+        is_pass_check = True
         errorMessage = ""
         errorCode = 0
 
-        path = path.lstrip('/')
-        real_path = None
-        is_shared_folder = False
-
-        poolid = self.current_user['poolid']
-        self.open_metadata(poolid)
-
-        status_code, error = self.check_path(path,is_shared_folder)
-
-        if status_code == 200:
-            real_path = os.path.abspath(os.path.join(self.user_home, path))
-            logging.info('user query metadata path:%s, at real path: %s' % (path, real_path))
-
-        if status_code == 200:
-            if not os.path.exists(real_path):
-                status_code = 404
-                error_code = 123
-                error_dict = dict(error_msg='path is not exist.',error_code=error_code)
-            else:
-                # path exist.
+        if is_pass_check:
+            is_pass_check = False
+            try :
+                _body = json.loads(self.request.body)
+                is_pass_check = True
+            except Exception:
+                errorMessage = "wrong json format"
+                errorCode = 1001
                 pass
 
-        if status_code == 200:
-            # start to get metadata (owner)
-            query_result = self.metadata_manager.query_formated(path)
-            if not query_result is None:
-                self.write(query_result)
-                #self.render('metadata-fs.json')
+        path = None
+        if is_pass_check:
+            is_pass_check = False
+            #logging.info('%s' % (str(_body)))
+            if _body:
+                try :
+                    if 'path' in _body:
+                        path = _body['path']
+                    is_pass_check = True
+                except Exception:
+                    errorMessage = "parse json fail"
+                    errorCode = 1002
+
+        if is_pass_check:
+            if path is None:
+                errorMessage = "path is empty"
+                errorCode = 1010
+                is_pass_check = False
             else:
-                # todo:
+                if "/../" in path:
+                    errorMessage = "path is not valid"
+                    errorCode = 1011
+                    is_pass_check = False
+
+                if path == "/":
+                    #PS: dropbox not all path='/''
+                    path = ""
+
+
+        if is_pass_check:
+            self.metadata_manager = MetaManager(self.application.sql_client, self.current_user, path)
+
+            if not os.path.exists(self.metadata_manager.real_path):
+                errorMessage = "path not found"
+                errorCode = 1020
+                is_pass_check = False
+
+        query_result = None
+        if is_pass_check:
+            # start to get metadata (owner)
+            query_result = self.metadata_manager.query_formated()
+            if query_result is None:
+                errorMessage = "metadata not found"
+                errorCode = 1021
+                is_pass_check = False
+
+                # [TODO]:
                 # real path exist, but database not exist.
                 # reture error or sync database from real path.
                 pass
+
+        if is_pass_check:
+            self.write(query_result)
         else:
-            self.set_status(status_code)
-            self.write(error_dict)
+            self.set_status(400)
+            self.write(dict(error=dict(message=errorMessage,code=errorCode)))
+            logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
 

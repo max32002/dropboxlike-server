@@ -224,7 +224,7 @@ class RepoClaimAuthHandler(BaseHandler):
         is_pass_check, poolid = pool_dbo.add(user_account, is_root)
         if is_pass_check:
             if poolid > 0:
-                localpoolname = "/"
+                localpoolname = ""
                 can_edit = 1
                 status = dbconst.POOL_STATUS_OWNER
 
