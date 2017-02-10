@@ -1,83 +1,100 @@
 from app.handlers import BaseHandler
 import logging
 import os
+import json
 from tornado.options import options
+from app.controller.meta_manager import MetaManager
 
 class FileDeleteHandler(BaseHandler):
+    metadata_manager = None
+
     def post(self):
-        """!create folder file
-        @param path file path
-        @retval Object http response
-        """ 
-        path = self.get_argument('path')
-        path = path.lstrip('/')
+        self.set_header('Content-Type','application/json')
 
-        real_path = None
-        is_shared_folder = False
+        is_pass_check = True
+        errorMessage = ""
+        errorCode = 0
 
-        poolid = self.current_user['poolid']
-        self.open_metadata(poolid)
+        if is_pass_check:
+            is_pass_check = False
+            try :
+                _body = json.loads(self.request.body)
+                is_pass_check = True
+            except Exception:
+                errorMessage = "wrong json format"
+                errorCode = 1001
+                pass
 
-        status_code = 200
-        error_dict = None
-        status_code, error = self.check_path(path,is_shared_folder)
+        path = None
+        if is_pass_check:
+            is_pass_check = False
+            #logging.info('%s' % (str(_body)))
+            if _body:
+                try :
+                    if 'path' in _body:
+                        path = _body['path']
+                    is_pass_check = True
+                except Exception:
+                    errorMessage = "parse json fail"
+                    errorCode = 1002
 
-        # todo:
-        # how to handle delete a path that content a shared subfolder.
+        if is_pass_check:
+            ret, errorMessage = self.check_path(path)
+            if not ret:
+                is_pass_check = False
+                errorCode = 1010
 
-        if len(path) < 0:
-            status_code = 400
-            error_dict = dict(error_msg='path is empty.')
+        if is_pass_check:
+            if len(path)==0:
+                errorMessage = "path is empty"
+                errorCode = 1013
+                is_pass_check = False
+                    
+        if is_pass_check:
+            self.metadata_manager = MetaManager(self.application.sql_client, self.current_user, path)
 
-        if status_code == 200:
-            real_path = os.path.abspath(os.path.join(self.user_home, path))
-            logging.info('user delete real path at:%s' % (real_path))
+            if not os.path.exists(self.metadata_manager.real_path):
+                # ignore
+                pass
+                # path exist
+                #errorMessage = "path is not exist"
+                #errorCode = 1020
+                #is_pass_check = False
 
-        if status_code == 200:
-            if not os.path.exists(real_path):
-                status_code = 400
-                error_dict = dict(error_msg='path is not exist.')
+        if is_pass_check:
+            if not self.metadata_manager.can_edit:
+                errorMessage = "no write premission"
+                errorCode = 1020
+                is_pass_check = False
 
-        if status_code == 200:
-            # insert log
-            # get log info before delete
-            action      = 'FileDelete' 
-            delta       = 'Delete'
-            from_path   = ''
-            to_path     = ''
-            method      = 'POST'
-            is_dir      = 0
-            size        = 0
+        query_result = None
+        if is_pass_check:
+            query_result = self.metadata_manager.get_path()
+            if query_result is None:
+                errorMessage = "metadata not found"
+                errorCode = 1021
+                is_pass_check = False
 
-            if os.path.isdir(real_path):
-                is_dir  = 1
-            if os.path.exists(real_path):
-                size    = os.stat(real_path).st_size 
+        if is_pass_check:
+            logging.info('user delete real path at:%s' % (self.metadata_manager.real_path))
+            if os.path.exists(self.metadata_manager.real_path):
+                self._deletePath(self.metadata_manager.real_path)
 
-            # start to delete
-            # todo:
-            #   if delete fail...
-            self._deletePath(real_path)
+            # update metadata in data.
+            is_pass_check = self.metadata_manager.delete_metadata()
+            if not is_pass_check:
+                errorMessage = "delete metadata fail"
+                errorCode = 1030
+                is_pass_check = False
 
-            # todo:
-            #   check subfolder content a share folder.
 
-            
-            # insert log
-            if not os.path.exists(real_path):
-                # only path not exist to save.
-                self.insert_log(action,delta,path,from_path,to_path,method,is_dir,size)
-
-            # update metadata. (owner)
-            self.metadata_manager.remove(path)
-
-            # update metadata. (shared)
-            # todo: ...
-
+        if is_pass_check:
+            self.write(query_result)
         else:
-            self.set_status(status_code)
-            self.write(error_dict)
-            # self.write(dict(error=dict(message=errorMessage,code=errorCode)))
+            self.set_status(400)
+            self.write(dict(error=dict(message=errorMessage,code=errorCode)))
+            #logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
+
 
     def _deleteThumbnails(self, path):
         if os.path.isfile(real_path):
@@ -88,10 +105,12 @@ class FileDeleteHandler(BaseHandler):
                     doc_id = metadata_dic['doc_id']
                     thumbnail._removeThumbnails(doc_id)
         else:
-            # todo:
+            # [TODO]:
             # recurcive scan all sub files.
             pass
             
+    # [TODO]:
+    # delete fail, file locked.
     def _deletePath(self, real_path):
         import shutil
 

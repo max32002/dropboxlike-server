@@ -118,14 +118,17 @@ CREATE INDEX IF NOT EXISTS delta_path ON delta(poolid,path);
     # return:
     #       True: Update as 'deleted' successfully.
     #       False: Update as 'deleted' fail.
-    def delete_path(self, path='', account = ''):
-
-        update_time = utils.get_timestamp()
+    def delete_path(self, poolid=0, path='', account = ''):
         ret = False
         errorMessage = ""
+
+        update_time = utils.get_timestamp()
         try:
-            sql = "UPDATE delta set tag='deleted', update_time=? WHERE poolid=? and path=?"
-            cursor = self.conn.execute(sql, (update_time, poolid, path,))
+            sql = "UPDATE delta set tag='deleted', update_time=?, account=? WHERE poolid=? and path=?"
+            cursor = self.conn.execute(sql, (update_time, account, poolid, path,))
+
+            sql = "UPDATE delta set tag='deleted', update_time=?, account=? WHERE poolid=? and path like ?"
+            cursor = self.conn.execute(sql, (update_time, account, poolid, path + '/%',))
             self.conn.commit()
             ret = True
         except Exception as error:

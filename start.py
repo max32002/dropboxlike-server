@@ -12,12 +12,12 @@ if __name__ == "__main__":
         (r'/1/repo/security_update', 'app.controller.RepoSecurityUpdateHandler'),
         (r'/1/files/list_folder', 'app.controller.ListFolderHandler'),
         (r'/1/files/create_folder', 'app.controller.FileCreateFolderHandler'),
+        (r'/1/files/delete', 'app.controller.FileDeleteHandler'),
         
         (r'/1/files/upload', 'app.controller.FilesHandler'),
         (r'/1/files/chunked_upload(.*)', 'app.controller.ChunkUploadHandler'),
         (r'/1/files/commit_chunked_upload(.*)', 'app.controller.CommitUploadHandler'),
         (r'/1/files/copy', 'app.controller.FileCopyHandler'),
-        (r'/1/files/delete', 'app.controller.FileDeleteHandler'),
         (r'/1/files/move', 'app.controller.FileMoveHandler'),
         (r'/1/files/permanently_delete', 'app.controller.FileDeleteHandler'),
 

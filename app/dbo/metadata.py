@@ -41,15 +41,19 @@ CREATE TABLE IF NOT EXISTS `metadata` (
         self.dbo_delta = DboDelta(db_conn)
 
     # get current path metadata.
-    def get_path( self, poolid, path):
+    def get_metadata( self, poolid, path):
         out_dic = None
         sql = 'SELECT '+ self.sql_return_fields +' FROM '+ self.sql_table_name +' WHERE poolid=? AND path=? LIMIT 1'
+        #print "sql:",sql, poolid, path
         cursor = self.conn.execute(sql, (poolid, path,))
-        out_dic = self.get_dict_by_cursor(cursor)
+        row_array = self.get_dict_by_cursor(cursor)
+        if len(row_array) > 0:
+            out_dic = row_array[0]
+        #print "metadata dict:", out_dic
         return out_dic 
 
     # get childes metadata..
-    def get_contents( self, poolid, path):
+    def list_folder( self, poolid, path):
         out_dic = None
         sql = 'SELECT '+ self.sql_return_fields +' FROM '+ self.sql_table_name +' WHERE poolid=? and parent=?'
         cursor = self.conn.execute(sql, (poolid, path,))
@@ -59,8 +63,8 @@ CREATE TABLE IF NOT EXISTS `metadata` (
 
     # force create lost parent folders
     def check_and_create_parent(self, poolid, path, owner):
-        out_dic = self.get_path(poolid, path)
-        if len(out_dic) == 0:
+        out_dic = self.get_metadata(poolid, path)
+        if out_dic is None:
             # current path not exist, create it.
             return self.create_folder(poolid, path, owner)
 
@@ -72,7 +76,6 @@ CREATE TABLE IF NOT EXISTS `metadata` (
         out_dic['rev'] = ''
         out_dic['size'] = 0
         out_dic['client_modified'] = utils.get_timestamp()
-        out_dic['lock'] = 0
         out_dic['is_dir'] = 1
         out_dic['editor'] = owner
         out_dic['owner'] = owner
@@ -192,19 +195,15 @@ CREATE TABLE IF NOT EXISTS `metadata` (
 
         if not error_flag:
             # get parent node by path
-            #parent_node, item_name = self.get_parent_node(path)
-            parent_node = ''
-            item_name = ''
-            if '/' in path:
-                parent_node, item_name = os.path.split(path)
-            else:
-                item_name = path
+            parent_node, item_name = os.path.split(path)
 
             # skip parent's commit.
             if self.last_transaction_path is None:
                 self.last_transaction_path = path
 
-            if parent_node!='':
+            if not parent_node is None:
+                if parent_node == "/":
+                    parent_node = ""
                 self.check_and_create_parent(poolid, parent_node, in_dic['editor'])
             logging.info("update '%s' to metadata database ...", item_name)
 
@@ -273,30 +272,26 @@ CREATE TABLE IF NOT EXISTS `metadata` (
 
         if not error_flag:
             # get parent node by path
-            #parent_node, item_name = self.get_parent_node(path)
-            parent_node = ''
-            item_name = ''
-            if '/' in path:
-                parent_node, item_name = os.path.split(path)
-            else:
-                item_name = path
+            parent_node, item_name = os.path.split(path)
 
             # skip parent's commit.
             if self.last_transaction_path is None:
                 self.last_transaction_path = path
 
-            if parent_node!='':
+            if not parent_node is None:
+                if parent_node == "/":
+                    parent_node = ""
                 self.check_and_create_parent(poolid, parent_node, in_dic['editor'])
             logging.info("copy '%s' to metadata database ...", item_name)
 
-            sql = "insert into metadata (poolid, path, comment, shared_flag, content_hash, rev, size, mtime, lock, is_dir, parent, name, thumbnail, modify_time, editor, owner) "
+            sql = "insert into metadata (poolid, path, comment, shared_flag, content_hash, rev, size, mtime, is_dir, parent, name, thumbnail, modify_time, editor, owner) "
             sql += "select ?, 0, 0, content_hash, '', '', size, mtime, 0, is_dir, 0, ?, ?, thumbnail, modify_time,?,? from metadata where poolid=? and path=?"
             self.conn.execute(sql, (poolid, path,parent_node, item_name,in_dic['editor'],in_dic['editor'],poolid,old_path,))
 
             # copy child node path.
             #if out_dic['error'] == '':
             if old_path != path:
-                sql = "insert into metadata (poolid, path, comment, shared_flag, content_hash, rev, size, mtime, lock, is_dir, parent, name, thumbnail, modify_time, editor, owner) "
+                sql = "insert into metadata (poolid, path, comment, shared_flag, content_hash, rev, size, mtime, is_dir, parent, name, thumbnail, modify_time, editor, owner) "
                 sql += "select ? || substr(path, length(?)+1), 0, 0, content_hash, '', '', size, mtime, 0, is_dir, ? || substr(parent, length(?)+1), name, thumbnail, modify_time,?,? from metadata where poolid=? and path like ?"
                 self.conn.execute(sql, (poolid, path,old_path,path,old_path,in_dic['editor'],in_dic['editor'], poolid, old_path+'/%',))
                 #self.conn.commit()
@@ -309,32 +304,33 @@ CREATE TABLE IF NOT EXISTS `metadata` (
             logging.info("copy metadata database error:%s.", out_dic['error'])
             return out_dic
 
-    def delete( self, in_dic ):
-        out_dic = {}
-        out_dic['error'] = ''
+    def delete( self, poolid, path, account ):
+        errorMessage = ""
+        ret = True
 
-        poolid = ''
-        if in_dic.get('poolid', 0) == 0:
-            out_dic['error'] = 'poolid value cannot be empty.'
-            error_flag = False
-        else:
-            poolid = in_dic['poolid']
+        if poolid < 1 :
+            errorMessage = 'poolid value wrong.'
+            ret = False
 
-        path = ''
-        if in_dic['path'] == '':
-            out_dic['error'] = 'path value cannot be empty.'
-            return out_dic
-        else:
-            path = in_dic['path']
+        if path is None:
+            errorMessage = 'path value wrong.'
+            ret = False
 
-        # [TODO]: cross pool copy.
-        #
+        if ret:
+            try:
+                self.conn.execute('delete from metadata where poolid=? and path = ? ', (poolid, path,))
+                self.conn.execute('delete from metadata where poolid=? and path like ?', (poolid, path + '/%',))
+                self.conn.commit()
 
+                self.dbo_delta.delete_path(poolid=poolid,path=path,account=account)
 
-        if path != "/":
-            self.conn.execute('delete from metadata where poolid, path = ? ', (path,))
-        self.conn.execute('delete from metadata where poolid, path like ?', (path + '/%',))
-        self.conn.commit()
+            except Exception as error:
+                ret = False
+                errorMessage = "delete metadata table Error: {}".format(error)
+                logging.error(errorMessage)
+
+        return ret, errorMessage
+
 
 
     # get node id,

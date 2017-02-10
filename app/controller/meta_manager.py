@@ -52,7 +52,7 @@ class MetaManager():
             if path != "":
                 db_path = path[len(self.poolname):]
             self.real_path = os.path.join(self.poolpath, db_path[1:])
-            logging.info('user query metadata path:%s, at real path: %s' % (path, self.real_path))
+            #logging.info('user query metadata path:%s, at real path: %s' % (path, self.real_path))
 
     # open database.
     #[TODO] multi-database solution.
@@ -68,10 +68,13 @@ class MetaManager():
         return client
 
 
-    def query_formated(self):
+    def get_path(self):
+        return self.dbo_metadata.get_metadata(self.poolid, self.path)
+
+    def list_folder(self):
         metadata_dic = {}
 
-        dic_children = self.dbo_metadata.get_contents(self.poolid, self.path)
+        dic_children = self.dbo_metadata.list_folder(self.poolid, self.path)
         contents = []
 
         # for small case used.
@@ -108,25 +111,27 @@ class MetaManager():
         return metadata_dic
 
     def convert_for_dropboxlike_dict(self, tmp_dict):
-        in_dic = {}
-        in_dic['id'] = tmp_dict['doc_id']
-        in_dic['name'] = tmp_dict['name']
-        #in_dic['path'] = tmp_dict['path']
-        
-        #in_dic['permission'] = "{"write": True}"ll
-        in_dic['permission'] = 'r'
-        if self.can_edit:
-            in_dic['permission'] = 'rw'
-        
-        in_dic['type'] = ("folder" if tmp_dict['is_dir']==1 else "file")
-        if tmp_dict['is_dir']==0:
-            in_dic['size'] = tmp_dict['size']
-            in_dic['rev'] = tmp_dict['rev']
-            in_dic['content_hash'] = tmp_dict['content_hash']
-            in_dic['client_modified'] = tmp_dict['client_modified']
-            in_dic['server_modified'] = tmp_dict['server_modified']
+        out_dic = None
+        if not tmp_dict is None:
+            out_dic = {}
+            out_dic['id'] = tmp_dict['doc_id']
+            out_dic['name'] = tmp_dict['name']
+            #out_dic['path'] = tmp_dict['path']
+            
+            #out_dic['permission'] = "{"write": True}"ll
+            out_dic['permission'] = 'r'
+            if self.can_edit:
+                out_dic['permission'] = 'rw'
+            
+            out_dic['type'] = ("folder" if tmp_dict['is_dir']==1 else "file")
+            if tmp_dict['is_dir']==0:
+                out_dic['size'] = tmp_dict['size']
+                out_dic['rev'] = tmp_dict['rev']
+                out_dic['content_hash'] = tmp_dict['content_hash']
+                out_dic['client_modified'] = tmp_dict['client_modified']
+                out_dic['server_modified'] = tmp_dict['server_modified']
+        return out_dic
 
-        return in_dic
 
     def add_metadata(self, path, size=0, rev='', client_modified=None, is_dir=0, content_hash=''):
         in_dic = {}
@@ -168,12 +173,14 @@ class MetaManager():
         return self.dbo_metadata.copy(in_dic)
 
 
-    def remove(self, path):
+    def delete_metadata(self):
         # todo: 
         #   check permission...
         # 
 
-        in_dic = {}
-        in_dic['path'] = path
-        return self.dbo_metadata.delete(in_dic)
+        ret = False
+        if self.can_edit:
+            if not self.poolid is None and not self.path is None:
+                ret = self.dbo_metadata.delete(self.poolid, self.path, self.account)
+        return ret
 

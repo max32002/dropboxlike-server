@@ -63,26 +63,7 @@ class FileCreateFolderHandler(BaseHandler):
 
         if is_pass_check:
             logging.info('user create real path at:%s' % (self.metadata_manager.real_path))
-
-            #self._createFolder(real_path)
-
-            # insert log
-            '''
-            action      = 'CreateFolder' 
-            delta       = 'Create'
-            from_path   = ''
-            to_path     = ''
-            method      = 'POST'
-            is_dir      = 0
-            size        = 0
-
-            if os.path.isdir(real_path):
-                is_dir  = 1
-            if os.path.exists(real_path):
-                size    = os.stat(real_path).st_size 
-                
-            self.insert_log(action,delta,path,from_path,to_path,method,is_dir,size)
-            '''
+            self._createFolder(self.metadata_manager.real_path)
 
             # update metadata. (owner)
             is_pass_check, out_dict, errorMessage, errorCode = self.metadata_manager.add_metadata(path,is_dir=1)
@@ -93,7 +74,7 @@ class FileCreateFolderHandler(BaseHandler):
         query_result = None
         if is_pass_check:
             # start to get metadata (owner)
-            query_result = self.metadata_manager.query_formated()
+            query_result = self.metadata_manager.get_path()
             if query_result is None:
                 errorMessage = "metadata not found"
                 errorCode = 1040

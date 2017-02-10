@@ -110,10 +110,14 @@ class BaseHandler(RequestHandler):
         ret = True
 
         if path is None:
-            errorMessage = "path is empty"
+            errorMessage = "empty_path"
             ret = False
         else:
             if "/../" in path:
+                errorMessage = "malformed_path"
+                ret = False
+
+            if "//" in path:
                 errorMessage = "malformed_path"
                 ret = False
 
