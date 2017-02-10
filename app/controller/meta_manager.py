@@ -16,6 +16,7 @@ class MetaManager():
     poolpath = None
     poolid = None
     poolname = None
+    can_edit = False
     path = None
     real_path = None
 
@@ -26,14 +27,19 @@ class MetaManager():
         if not self.poolid is None:
             # default access user-home.
             self.poolname = ""
+            self.can_edit = True
 
         if len(path) > 1:
             # query share_folder
             pool_subscriber_dbo = DboPoolSubscriber(sql_client)
-            db_poolid, db_poolname = pool_subscriber_dbo.find_share_poolid(self.account, path)
-            if not db_poolid is None:
-                self.poolid = db_poolid
-                self.poolname = db_poolname
+            pool_dict = pool_subscriber_dbo.find_share_poolid(self.account, path)
+            if not pool_dict is None:
+                self.poolid = pool_dict['poolid']
+                self.poolname = pool_dict['poolname']
+                # share folder under repo co-owner.
+                self.can_edit = False
+                if pool_dict['can_edit'] == 1:
+                    self.can_edit = True
 
         if not self.poolid is None:
             self.poolpath = '%s/storagepool/%s' % (options.storage_access_point,self.poolid)
@@ -66,13 +72,17 @@ class MetaManager():
         metadata_dic = {}
 
         dic_children = self.dbo_metadata.get_contents(self.poolid, self.path)
-        #print 'dic_children:%s' % (dic_children)
         contents = []
 
         # for small case used.
         for item in dic_children:
             contents.append(self.convert_for_dropboxlike_dict(item))
         metadata_dic['entries']=contents
+        
+        metadata_dic['cursor']=utils.get_timestamp()
+        #[TOOD]: paging metadata
+        metadata_dic['has_more']=False
+
         #print 'dic_current:%s' % (metadata_dic)
         #self.write(metadata_dic)
 
@@ -99,28 +109,36 @@ class MetaManager():
 
     def convert_for_dropboxlike_dict(self, tmp_dict):
         in_dic = {}
-        in_dic['path'] = '/' + tmp_dict['path']
-        in_dic['content_hash'] = tmp_dict['content_hash']
+        in_dic['id'] = tmp_dict['doc_id']
+        in_dic['name'] = tmp_dict['name']
+        #in_dic['path'] = tmp_dict['path']
+        
         #in_dic['permission'] = "{"write": True}"ll
-        in_dic['permission'] = tmp_dict['permission']
-        in_dic['rev'] = tmp_dict['rev']
-        in_dic['size'] = tmp_dict['size']
-        in_dic['is_dir'] = (True if tmp_dict['is_dir']==1 else False)
-        in_dic['client_modified'] = tmp_dict['client_modified']
-        in_dic['server_modified'] = tmp_dict['server_modified']
+        in_dic['permission'] = 'r'
+        if self.can_edit:
+            in_dic['permission'] = 'rw'
+        
+        in_dic['type'] = ("folder" if tmp_dict['is_dir']==1 else "file")
+        if tmp_dict['is_dir']==0:
+            in_dic['size'] = tmp_dict['size']
+            in_dic['rev'] = tmp_dict['rev']
+            in_dic['content_hash'] = tmp_dict['content_hash']
+            in_dic['client_modified'] = tmp_dict['client_modified']
+            in_dic['server_modified'] = tmp_dict['server_modified']
+
         return in_dic
 
-    def add_metadata(self, path, size=0, rev='', client_modified=None, is_dir=0):
+    def add_metadata(self, path, size=0, rev='', client_modified=None, is_dir=0, content_hash=''):
         in_dic = {}
         in_dic['poolid'] = self.poolid
         in_dic['path'] = path
-        in_dic['content_hash'] = ''
         in_dic['rev'] = rev
         in_dic['size'] = size
         if client_modified is None:
             client_modified = utils.get_timestamp()
         in_dic['client_modified'] = client_modified
         in_dic['is_dir'] = is_dir
+        in_dic['content_hash'] = content_hash
         in_dic['editor'] = self.account
         in_dic['owner'] = self.account
         return self.dbo_metadata.insert(in_dic)

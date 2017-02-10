@@ -106,10 +106,9 @@ CREATE TABLE IF NOT EXISTS `pool_subscriber` (
     #     PS3: shared(status=100) pool need to know parent folder is disappear! (move or delete action).
     #     PS4: copy command is not allow to do overwrite, so, only delete command effect share folder in sub-folder.
     def find_share_poolid( self, account, path):
-        poolid = None
-        poolname = None
+        ret_dict = None
         try:
-            sql = "SELECT poolid,localpoolname FROM pool_subscriber WHERE account=? AND status in (?,?)"
+            sql = "SELECT poolid,localpoolname,can_edit FROM pool_subscriber WHERE account=? AND status in (?,?)"
             cursor = self.conn.execute(sql, (account,dbconst.POOL_STATUS_SHARED,dbconst.POOL_STATUS_SHARED_ACCEPTED))
             for row in cursor:
                 db_path = row[1] + "/"
@@ -117,14 +116,16 @@ CREATE TABLE IF NOT EXISTS `pool_subscriber` (
                 # case 1: Database is shorter than path.
                 # case 2: Database is equal with path.
                 if input_path.startswith(db_path):
-                    poolid=row[0]
-                    poolname=row[1]
+                    ret_dict = {}
+                    ret_dict['poolid']=row[0]
+                    ret_dict['poolname']=row[1]
+                    ret_dict['can_edit']=row[3]
         except Exception as error:
             #except sqlite3.IntegrityError:
             #except sqlite3.OperationalError, msg:
             #print("Error: {}".format(error))
             logging.error("sqlite error: %s", "{}".format(error))
             #raise
-        return (poolid, poolname)
+        return ret_dict
 
 

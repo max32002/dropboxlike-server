@@ -62,9 +62,11 @@ class ListFolderHandler(BaseHandler):
             self.metadata_manager = MetaManager(self.application.sql_client, self.current_user, path)
 
             if not os.path.exists(self.metadata_manager.real_path):
-                errorMessage = "path not found"
-                errorCode = 1020
-                is_pass_check = False
+                pass
+                #[TODO]: rebuild path on server side from database?
+                #errorMessage = "path on server not found"
+                #errorCode = 1020
+                #is_pass_check = False
 
         query_result = None
         if is_pass_check:
