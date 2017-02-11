@@ -8,9 +8,7 @@ from tornado.httpserver import HTTPServer
 from tornado.web import Application
 from tornado.ioloop import IOLoop
 from tornado.options import options, parse_command_line
-from jinja2 import ChoiceLoader, FileSystemLoader
 
-from app.lib.template import JinjaLoader
 from app.lib.misc import install_tornado_shutdown_handler
 
 import sqlite3
@@ -29,15 +27,10 @@ class MaxDropboxLikeWeb(object):
         parse_command_line(final=True)
 
         self_dir_path = os.path.abspath(os.path.join(os.path.dirname(__file__),".."))
-        loader = ChoiceLoader([
-            FileSystemLoader(proj_template_path),
-            FileSystemLoader(os.path.join(self_dir_path, '../templates')),
-            ])
 
         return {
             'default_handler_class': MyErrorHandler,
             'default_handler_args': dict(status_code=404),
-            'template_loader': JinjaLoader(loader=loader, auto_escape=False),
             'debug': options.debug,
             'claimed': claimed
         }

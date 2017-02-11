@@ -43,20 +43,10 @@ class ListFolderHandler(BaseHandler):
                     errorCode = 1002
 
         if is_pass_check:
-            if path is None:
-                errorMessage = "path is empty"
-                errorCode = 1010
+            ret, errorMessage = self.check_path(path)
+            if not ret:
                 is_pass_check = False
-            else:
-                if "/../" in path:
-                    errorMessage = "path is not valid"
-                    errorCode = 1011
-                    is_pass_check = False
-
-                if path == "/":
-                    #PS: dropbox not all path='/''
-                    path = ""
-
+                errorCode = 1010
 
         if is_pass_check:
             self.metadata_manager = MetaManager(self.application.sql_client, self.current_user, path)
@@ -71,7 +61,7 @@ class ListFolderHandler(BaseHandler):
         query_result = None
         if is_pass_check:
             # start to get metadata (owner)
-            query_result = self.metadata_manager.query_formated()
+            query_result = self.metadata_manager.list_folder()
             if query_result is None:
                 errorMessage = "metadata not found"
                 errorCode = 1021

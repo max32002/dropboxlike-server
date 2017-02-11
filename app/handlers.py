@@ -84,9 +84,6 @@ class BaseHandler(RequestHandler):
 
         return user_dict
 
-    def has_argument(self, name):
-        return name in self.request.arguments
-
     def write_error(self, status_code, **kwargs):
         if status_code == 403:
             self.write('You do not have previlege to view this page.')
@@ -100,10 +97,6 @@ class BaseHandler(RequestHandler):
             return
 
         return super(BaseHandler, self).write_error(status_code, **kwargs)
-
-    def render(self, template, **kwargs):
-        #kwargs['site'] = 'Shire'
-        return super(BaseHandler, self).render(template, **kwargs)
 
     def check_path(self, path):
         errorMessage = ""
@@ -126,12 +119,18 @@ class BaseHandler(RequestHandler):
                 ret = False
 
             #Dropbox 的 path pattern
-            import re
-            pattern = r'(/(.|[\r\n])*)|(ns:[0-9]+(/.*)?)'
-            match_object = re.match(pattern, path)
-            if not match_object:
-                errorMessage = "path: '%s' did not match pattern." % (path)
-                ret = False
+            if path != "":
+                import re
+                pattern = r'(/(.|[\r\n])*)|(ns:[0-9]+(/.*)?)'
+                match_object = re.match(pattern, path)
+                if not match_object:
+                    errorMessage = "path: '%s' did not match pattern." % (path)
+                    ret = False
+
+            if path == "/":
+                #PS: dropbox not all path='/''
+                path = ""
+
         return ret, errorMessage
 
     @property

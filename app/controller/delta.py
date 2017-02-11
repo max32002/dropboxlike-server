@@ -8,13 +8,8 @@ import json
 import os
 
 class DeltaHandler(BaseHandler):
-    '''!Metadata API Controller'''
 
-    def get(self):
-        """metadata a path
-        @param path file path
-        @retval Object http response
-        """ 
+    def post(self):
         self.set_header('Content-Type','application/json')
         cursor = None
         if self.has_argument('cursor'):
@@ -51,8 +46,6 @@ class DeltaHandler(BaseHandler):
         dict_delta = {
 'entries':[],
 'cursor': utils.get_timestamp(),
-'used': 0,
-'trash': 0,
 'quota': 0,
 'has_more': False
 }
