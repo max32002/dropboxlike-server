@@ -61,29 +61,28 @@ class FileCreateFolderHandler(BaseHandler):
                 errorCode = 1020
                 is_pass_check = False
 
+        query_result = None
         if is_pass_check:
-            logging.info('user create real path at:%s' % (self.metadata_manager.real_path))
-            self._createFolder(self.metadata_manager.real_path)
+            query_result = self.metadata_manager.get_path()
+            if not query_result is None:
+                errorMessage = "metadata exist"
+                errorCode = 1021
+                is_pass_check = False
 
-            # update metadata. (owner)
-            is_pass_check, out_dict, errorMessage, errorCode = self.metadata_manager.add_metadata(path,is_dir=1)
-            if not is_pass_check:
-                # client need to check error code 1022, it's folder metadata exist.
-                errorCode = 1020 + errorCode
+                # handle special case: when database & storage is not synced!
+                # [TODO]: create server side folders but not files!
+                pass
 
         query_result = None
         if is_pass_check:
-            # start to get metadata (owner)
-            query_result = self.metadata_manager.get_path()
-            if query_result is None:
-                errorMessage = "metadata not found"
-                errorCode = 1040
-                is_pass_check = False
+            logging.info('Create real path at:%s' % (self.metadata_manager.real_path))
+            self._createFolder(self.metadata_manager.real_path)
 
-                # [TODO]:
-                # real path exist, but database not exist.
-                # reture error or sync database from real path.
-                pass
+            # update metadata. (owner)
+            is_pass_check, query_result, errorMessage = self.metadata_manager.add_metadata(is_dir=1)
+            if not is_pass_check:
+                #errorMessage = "add metadata in database fail"
+                errorCode = 1022
 
         if is_pass_check:
             self.write(query_result)

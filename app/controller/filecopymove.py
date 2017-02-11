@@ -1,88 +1,190 @@
 from app.handlers import BaseHandler
 import logging
 import os
+import json
 from tornado.options import options
 import shutil
+from app.controller.meta_manager import MetaManager
 
 class FileCopyMoveHandler(BaseHandler):
+    from_metadata_manager = None
+    to_metadata_manager = None
     operation = None
-    
+    OPERATION_COPY = "FileCopy"
+    OPERATION_MOVE = "FileMove"
+
     def post(self):
-        """!create folder file
-        @param path file path
-        @retval Object http response
-        """ 
-        from_path = self.get_argument('from_path')
-        from_path = from_path.lstrip('/')
-        from_real_path = None
-        from_is_shared_folder = False
-        to_path = self.get_argument('to_path')
-        to_path = to_path.lstrip('/')
-        to_real_path = None
-        to_is_shared_folder = False
+        self.set_header('Content-Type','application/json')
 
-        poolid = self.current_user['poolid']
-        self.open_metadata(poolid)
+        is_pass_check = True
+        errorMessage = ""
+        errorCode = 0
 
-        status_code = 200
-        error_dict = None
-        status_code, error = self.check_path(from_path,from_is_shared_folder)
+        if is_pass_check:
+            is_pass_check = False
+            try :
+                _body = json.loads(self.request.body)
+                is_pass_check = True
+            except Exception:
+                errorMessage = "wrong json format"
+                errorCode = 1001
+                pass
 
-        # todo: free space or quota check.
-        # // add some code here.
+        from_path = None
+        to_path = None
+        allow_shared_folder = None
+        autorename = None
 
-        if status_code == 200:
-            status_code, error = self.check_path(to_path,to_is_shared_folder)
+        if is_pass_check:
+            is_pass_check = False
+            #logging.info('%s' % (str(_body)))
+            if _body:
+                try :
+                    if 'from_path' in _body:
+                        from_path = _body['from_path']
+                    if 'to_path' in _body:
+                        to_path = _body['to_path']
+                    if 'allow_shared_folder' in _body:
+                        allow_shared_folder = _body['allow_shared_folder']
+                    if 'autorename' in _body:
+                        autorename = _body['autorename']
+                    is_pass_check = True
+                except Exception:
+                    errorMessage = "parse json fail"
+                    errorCode = 1002
 
-        if status_code == 200:
-            from_real_path = os.path.abspath(os.path.join(self.user_home, from_path))
-            logging.info('user copy real path from:%s' % (from_real_path))
-            to_real_path = os.path.abspath(os.path.join(self.user_home, to_path))
-            logging.info('user copy real path to:%s' % (to_real_path))
+        if is_pass_check:
+            ret, errorMessage = self.check_path(from_path)
+            if not ret:
+                is_pass_check = False
+                errorCode = 1010
 
-        if status_code == 200:
-            if not os.path.exists(from_real_path):
-                status_code = 400
-                error_dict = dict(error_msg='from_path is not exist.')
+        if is_pass_check:
+            if len(from_path)==0:
+                errorMessage = "from_path is empty"
+                errorCode = 1011
+                is_pass_check = False
 
-        if status_code == 200:
-            if os.path.exists(to_real_path):
-                status_code = 400
-                error_dict = dict(error_msg='to_path is exist.')
+        if is_pass_check:
+            ret, errorMessage = self.check_path(to_path)
+            if not ret:
+                is_pass_check = False
+                errorCode = 1012
 
-        if status_code == 200:
-            self._copymove(from_real_path,to_real_path,self.operation)
+        if is_pass_check:
+            if len(to_path)==0:
+                errorMessage = "to_path is empty"
+                errorCode = 1013
+                is_pass_check = False
 
-            # insert log to owner
-            action      = self.operation
-            delta       = 'Create'
-            path        = ''
-            #from_path   = ''
-            #to_path     = ''
-            method      = 'POST'
-            is_dir      = 0
-            size        = 0
-
-            if os.path.isdir(to_real_path):
-                is_dir  = 1
-            if os.path.exists(to_real_path):
-                size    = os.stat(to_real_path).st_size 
+        if is_pass_check:
+            if to_path == from_path:
+                errorMessage = "conflict"
+                errorCode = 1014
+                is_pass_check = False
                 
-            self.insert_log(action,delta,path,from_path,to_path,method,is_dir,size)
+        if is_pass_check:
+            if to_path.startswith(from_path):
+                errorMessage = "conflict"
+                errorCode = 1014
+                is_pass_check = False
+                    
+        if is_pass_check:
+            self.from_metadata_manager = MetaManager(self.application.sql_client, self.current_user, from_path)
 
+            if not os.path.exists(self.from_metadata_manager.real_path):
+                # [TODO]:
+                # create real folders from database.
+                #pass
+                # path not exist
+                errorMessage = "from_path:%s is not exist" % (from_path,)
+                errorCode = 1020
+                is_pass_check = False
+
+        if is_pass_check:
+            self.to_metadata_manager = MetaManager(self.application.sql_client, self.current_user, to_path)
+
+            if os.path.exists(self.to_metadata_manager.real_path):
+                # [TODO]:
+                # apply autorenename rule.
+                #pass
+                # path exist
+                errorMessage = "to_path is not exist"
+                errorCode = 1021
+                is_pass_check = False
+
+        if is_pass_check:
+            if not self.to_metadata_manager.can_edit:
+                errorMessage = "to_path no write permission"
+                errorCode = 1022
+                is_pass_check = False
+
+        if is_pass_check:
+            if self.operation is self.OPERATION_MOVE:                
+                if not self.from_metadata_manager.can_edit:
+                    errorMessage = "from_path no write permission"
+                    errorCode = 1023
+                    is_pass_check = False
+
+        query_result = None
+        if is_pass_check:
+            query_result = self.from_metadata_manager.get_path()
+            if query_result is None:
+                errorMessage = "from_path metadata not found"
+                errorCode = 1024
+                is_pass_check = False
+
+        # handle special case: when database & storage is not synced!
+        # real file deleted on server, but metadata exist.
+        # for now, just delete server side metadata.
+        query_result = None
+        if is_pass_check:
+            query_result = self.to_metadata_manager.get_path()
+            if not query_result is None:
+                # delete to_path metadata.
+                is_pass_check = self.to_metadata_manager.delete_metadata()
+                if not is_pass_check:
+                    errorMessage = "delete to_path metadata in database fail"
+                    errorCode = 1025
+                    is_pass_check = False
+
+        if is_pass_check:
+            logging.info('%s real path from:%s' % (self.operation, self.from_metadata_manager.real_path))
+            logging.info('%s real path to:%s' % (self.operation, self.to_metadata_manager.real_path))
+            
             # update metadata. (owner)
-            if self.operation is 'FileCopy':
-                self.metadata_manager.copy(from_path, to_path, is_dir=is_dir)
-            elif self.operation is 'FileMove':
-                self.metadata_manager.move(from_path, to_path, is_dir=is_dir)
+            if self.operation is self.OPERATION_COPY:
+                is_pass_check, query_result, errorMessage = self.to_metadata_manager.copy_metadata(self.from_metadata_manager.poolid, self.from_metadata_manager.db_path)
+                if query_result is None:
+                    errorMessage = "metadata not found"
+                    errorCode = 1040
+                    is_pass_check = False
+
+                #self.to_metadata_manager.copy(from_path, to_path, is_dir=is_dir)
+            if self.operation is self.OPERATION_MOVE:
+                is_pass_check, query_result, errorMessage = self.to_metadata_manager.move_metadata(self.from_metadata_manager.poolid, self.from_metadata_manager.db_path)
+                if query_result is None:
+                    errorMessage = "metadata not found"
+                    errorCode = 1040
+                    is_pass_check = False
+
+        if is_pass_check:
+            # [TODO]:
+            # rename shared folder under from_path
+            pass
+
+        if is_pass_check:
+            # must everyday is done, thus to move files.
+            self._copymove(self.from_metadata_manager.real_path,self.to_metadata_manager.real_path,self.operation)
 
 
-            # update metadata. (shared)
-            # todo: ...
+        if is_pass_check:
+            self.write(query_result)
         else:
-            self.set_status(status_code)
-            self.write(error_dict)
-            #self.write(dict(error=dict(message=errorMessage,code=errorCode)))
+            self.set_status(400)
+            self.write(dict(error=dict(message=errorMessage,code=errorCode)))
+            #logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
+
 
     def _createFolder(self, directory_name):
         if not os.path.exists(directory_name):
@@ -96,16 +198,16 @@ class FileCopyMoveHandler(BaseHandler):
             # file to file copy/move
             head, tail = os.path.split(dst)
             self._createFolder(head)
-            if operation is 'FileCopy':
+            if operation is self.OPERATION_COPY:
                 shutil.copy(src, dst)
-            elif operation is 'FileMove':
+            elif operation is self.OPERATION_MOVE:
                 shutil.move(src, dst)
         else:
             # folder to folder copy/move.
             logging.info("%s sub-folder from %s to %s.", operation, src, dst)
-            if operation is 'FileCopy':
+            if operation is self.OPERATION_COPY:
                 self.copyrecursively(src, dst)
-            elif operation is 'FileMove':
+            elif operation is self.OPERATION_MOVE:
                 shutil.move(src, dst)
 
     def copyrecursively(self, root_src_dir, root_target_dir):
@@ -122,7 +224,7 @@ class FileCopyMoveHandler(BaseHandler):
 
 
 class FileCopyHandler(FileCopyMoveHandler):
-    operation= 'FileCopy'
+    operation= FileCopyMoveHandler.OPERATION_COPY
 
 class FileMoveHandler(FileCopyMoveHandler):
-    operation= 'FileMove'
+    operation= FileCopyMoveHandler.OPERATION_MOVE

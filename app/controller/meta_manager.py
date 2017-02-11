@@ -13,12 +13,13 @@ class MetaManager():
     '''!Metadata API Controller'''
     dbo_metadata = None
     account = None
-    poolpath = None
+    poolstorage = None
     poolid = None
     poolname = None
     can_edit = False
     path = None
     real_path = None
+    db_path = None
 
     def __init__(self, sql_client, current_user, path):
         self.path = path
@@ -42,16 +43,16 @@ class MetaManager():
                     self.can_edit = True
 
         if not self.poolid is None:
-            self.poolpath = '%s/storagepool/%s' % (options.storage_access_point,self.poolid)
+            self.poolstorage = '%s/storagepool/%s' % (options.storage_access_point,self.poolid)
             #logging.info('options.storage_access_point %s' % (options.storage_access_point))
-            #logging.info('poolpath %s' % (self.poolpath))
+            #logging.info('poolstorage %s' % (self.poolstorage))
             metadata_conn = self.open_metadata_db(self.poolid)
             self.dbo_metadata = DboMetadata(metadata_conn)
 
-            db_path = path
-            if path != "":
-                db_path = path[len(self.poolname):]
-            self.real_path = os.path.join(self.poolpath, db_path[1:])
+            self.db_path = path
+            if len(path) > 0:
+                self.db_path = path[len(self.poolname):]
+            self.real_path = os.path.join(self.poolstorage, self.db_path[1:])
             #logging.info('user query metadata path:%s, at real path: %s' % (path, self.real_path))
 
     # open database.
@@ -69,7 +70,10 @@ class MetaManager():
 
 
     def get_path(self):
-        return self.dbo_metadata.get_metadata(self.poolid, self.path)
+        current_metadata = self.dbo_metadata.get_metadata(self.poolid, self.path)
+        if not current_metadata is None:
+            current_metadata = self.convert_for_dropboxlike_dict(current_metadata)
+        return current_metadata
 
     def list_folder(self):
         metadata_dic = {}
@@ -133,10 +137,11 @@ class MetaManager():
         return out_dic
 
 
-    def add_metadata(self, path, size=0, rev='', client_modified=None, is_dir=0, content_hash=''):
+    def add_metadata(self, size=0, rev=None, client_modified=None, is_dir=0, content_hash=None):
         in_dic = {}
         in_dic['poolid'] = self.poolid
-        in_dic['path'] = path
+        in_dic['path'] = self.db_path
+
         in_dic['rev'] = rev
         in_dic['size'] = size
         if client_modified is None:
@@ -146,14 +151,19 @@ class MetaManager():
         in_dic['content_hash'] = content_hash
         in_dic['editor'] = self.account
         in_dic['owner'] = self.account
-        return self.dbo_metadata.insert(in_dic)
 
-    def move(self, from_path, to_path, rev=None, size=None, client_modified=None, is_dir=None):
+        ret, current_metadata, errorMessage = self.dbo_metadata.insert(in_dic)
+        if not current_metadata is None:
+            current_metadata = self.convert_for_dropboxlike_dict(current_metadata)
+        return ret, current_metadata, errorMessage
+
+    def move_metadata(self, from_poolid, from_path, rev=None, size=None, client_modified=None, is_dir=None, content_hash=None):
         in_dic = {}
+        in_dic['old_poolid'] = from_poolid
         in_dic['old_path'] = from_path
-        in_dic['path'] = to_path
-        #if not content_hash is None:
-        #    in_dic['content_hash'] = '' 
+        in_dic['poolid'] = self.poolid
+        in_dic['path'] = self.db_path
+
         if not rev is None:
             in_dic['rev'] = rev 
         if not size is None:
@@ -162,15 +172,40 @@ class MetaManager():
             in_dic['client_modified'] = client_modified 
         if not is_dir is None:
             in_dic['is_dir'] = is_dir
-        in_dic['editor'] = self.account
-        return self.dbo_metadata.update(in_dic)
+        if not content_hash is None:
+            in_dic['content_hash'] = content_hash
 
-    def copy(self, from_path, to_path):
-        in_dic = {}
-        in_dic['old_path'] = from_path
-        in_dic['path'] = to_path
         in_dic['editor'] = self.account
-        return self.dbo_metadata.copy(in_dic)
+
+        ret, current_metadata, errorMessage = self.dbo_metadata.update(in_dic)
+        if not current_metadata is None:
+            current_metadata = self.convert_for_dropboxlike_dict(current_metadata)
+        return ret, current_metadata, errorMessage
+
+    def copy_metadata(self, from_poolid, from_path, rev=None, size=None, client_modified=None, is_dir=None, content_hash=None):
+        in_dic = {}
+        in_dic['old_poolid'] = from_poolid
+        in_dic['old_path'] = from_path
+        in_dic['poolid'] = self.poolid
+        in_dic['path'] = self.db_path
+
+        if not rev is None:
+            in_dic['rev'] = rev 
+        if not size is None:
+            in_dic['size'] = size
+        if not client_modified is None:
+            in_dic['client_modified'] = client_modified 
+        if not is_dir is None:
+            in_dic['is_dir'] = is_dir
+        if not content_hash is None:
+            in_dic['content_hash'] = content_hash
+
+        in_dic['editor'] = self.account
+
+        ret, current_metadata, errorMessage = self.dbo_metadata.copy(in_dic)
+        if not current_metadata is None:
+            current_metadata = self.convert_for_dropboxlike_dict(current_metadata)
+        return ret, current_metadata, errorMessage
 
 
     def delete_metadata(self):
@@ -179,8 +214,7 @@ class MetaManager():
         # 
 
         ret = False
-        if self.can_edit:
-            if not self.poolid is None and not self.path is None:
-                ret = self.dbo_metadata.delete(self.poolid, self.path, self.account)
+        if not self.poolid is None and not self.db_path is None:
+            ret = self.dbo_metadata.delete(self.poolid, self.db_path, self.account)
         return ret
 

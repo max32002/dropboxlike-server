@@ -91,7 +91,8 @@ CREATE INDEX IF NOT EXISTS delta_path ON delta(poolid,path);
                     poolid      = 0,
                     path        = '',
                     doc_id      = 0,
-                    account     = ''
+                    account     = '',
+                    autocommit  = True
                     ):
 
         update_time = utils.get_timestamp()
@@ -103,7 +104,8 @@ CREATE INDEX IF NOT EXISTS delta_path ON delta(poolid,path);
 
             sql = "INSERT INTO delta (tag,poolid,path,doc_id,account,update_time) VALUES (?, ?, ?, ?, ?, ?)"
             cursor = self.conn.execute(sql, (tag,poolid,path,doc_id,account,update_time,))
-            self.conn.commit()
+            if autocommit:
+                self.conn.commit()
             ret = True
         except Exception as error:
             #except sqlite3.IntegrityError:
@@ -118,7 +120,7 @@ CREATE INDEX IF NOT EXISTS delta_path ON delta(poolid,path);
     # return:
     #       True: Update as 'deleted' successfully.
     #       False: Update as 'deleted' fail.
-    def delete_path(self, poolid=0, path='', account = ''):
+    def delete_path(self, poolid=0, path='', account = '', autocommit=True):
         ret = False
         errorMessage = ""
 
@@ -129,7 +131,10 @@ CREATE INDEX IF NOT EXISTS delta_path ON delta(poolid,path);
 
             sql = "UPDATE delta set tag='deleted', update_time=?, account=? WHERE poolid=? and path like ?"
             cursor = self.conn.execute(sql, (update_time, account, poolid, path + '/%',))
-            self.conn.commit()
+            
+            if autocommit:
+                self.conn.commit()
+
             ret = True
         except Exception as error:
             #except sqlite3.IntegrityError:
