@@ -22,7 +22,7 @@ class UploadHandler(BaseHandler):
         errorCode = 0
 
         apiArg = self.request.headers.get("Dropboxlike-API-Arg")
-        logging.info('apiArg:%s ', apiArg)
+        #logging.info('apiArg:%s ', apiArg)
 
         if is_pass_check:
             if apiArg is None:

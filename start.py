@@ -16,6 +16,7 @@ if __name__ == "__main__":
         (r'/1/files/copy', 'app.controller.FileCopyHandler'),
         (r'/1/files/move', 'app.controller.FileMoveHandler'),
         (r'/1/files/upload', 'app.controller.UploadHandler'),
+        (r'/1/files/download', 'app.controller.DownloadHandler'),
 
         # merge to /1/files/list_folder with new parament.
         #(r'/1/delta', 'app.controller.DeltaHandler'),
