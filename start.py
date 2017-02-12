@@ -11,6 +11,7 @@ if __name__ == "__main__":
         (r'/1/repo/claim_auth', 'app.controller.RepoClaimAuthHandler'),
         (r'/1/repo/security_update', 'app.controller.RepoSecurityUpdateHandler'),
         (r'/1/files/list_folder', 'app.controller.ListFolderHandler'),
+        (r'/1/files/get_metadata', 'app.controller.MetadataHandler'),
         (r'/1/files/create_folder', 'app.controller.FileCreateFolderHandler'),
         (r'/1/files/delete', 'app.controller.FileDeleteHandler'),
         (r'/1/files/copy', 'app.controller.FileCopyHandler'),

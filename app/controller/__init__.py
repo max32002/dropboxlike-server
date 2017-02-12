@@ -10,6 +10,7 @@ from app.controller.account_info import AccountInfoHandler
 from app.controller.account_info import AccountSecurityQuestionHandler
 from app.controller.cursor import CursorHandler
 from app.controller.delta import DeltaHandler
+from app.controller.metadata import MetadataHandler
 from app.controller.metadata import ListFolderHandler
 from app.controller.thumbnail import ThumbnailHandler
 from app.controller.favorite import FavoriteHandler

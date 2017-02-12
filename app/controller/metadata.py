@@ -6,7 +6,8 @@ from app.controller.meta_manager import MetaManager
 import json
 import os
 
-class ListFolderHandler(BaseHandler):
+class MetadataHandler(BaseHandler):
+    mode = 'FILE'
     metadata_manager = None
 
     def post(self):
@@ -45,6 +46,14 @@ class ListFolderHandler(BaseHandler):
                 is_pass_check = False
                 errorCode = 1010
 
+        if self.mode == "FILE":
+            if is_pass_check:
+                if len(path)==0:
+                    errorMessage = "path is empty"
+                    errorCode = 1011
+                    is_pass_check = False
+
+
         if is_pass_check:
             self.metadata_manager = MetaManager(self.application.sql_client, self.current_user, path)
 
@@ -58,7 +67,11 @@ class ListFolderHandler(BaseHandler):
         query_result = None
         if is_pass_check:
             # start to get metadata (owner)
-            query_result = self.metadata_manager.list_folder()
+            if self.mode == "FILE":
+                query_result = self.metadata_manager.get_path()
+            else:
+                query_result = self.metadata_manager.list_folder()
+
             if query_result is None:
                 errorMessage = "metadata not found"
                 errorCode = 1021
@@ -75,4 +88,7 @@ class ListFolderHandler(BaseHandler):
             self.set_status(400)
             self.write(dict(error=dict(message=errorMessage,code=errorCode)))
             #logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
+
+class ListFolderHandler(MetadataHandler):
+    mode = 'FOLDER'
 
