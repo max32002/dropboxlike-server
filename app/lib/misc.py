@@ -50,6 +50,13 @@ def md5_hash(value):
     digest = data.hexdigest()
     return digest
 
+def md5_file(path):
+    hash_md5 = hashlib.md5()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
+
 
 def install_tornado_shutdown_handler(ioloop, server, logger=None):
     # see https://gist.github.com/mywaiting/4643396 for more detail

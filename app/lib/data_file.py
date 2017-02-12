@@ -13,12 +13,28 @@ def ensure_dir_exist(path):
         os.makedirs(path)
 \
 def save(abspath, content):
+    ret = False
+    message = ""
     dirname = os.path.dirname(abspath)
     ensure_dir_exist(dirname)
 
     tmp_abspath = '{}.tmp.{}'.format(abspath, os.getpid())
-    with _builtin_open(tmp_abspath, "wb") as fobj:
-        fobj.write(content)
-    shutil.move(tmp_abspath, abspath)
+    try:
+        # [TODO] handle special case: exist file locked.
 
-    return os.path.basename(abspath)
+        # [TODO] handel special case: disk no free space.
+
+        with _builtin_open(tmp_abspath, "wb") as fobj:
+            fobj.write(content)
+        shutil.move(tmp_abspath, abspath)
+
+        message = os.path.basename(abspath)
+
+        ret = True
+    except Exception as error:
+        errorMessage = "{}".format(error)
+        logging.error(errorMessage)
+        message = errorMessage
+
+
+    return ret, message

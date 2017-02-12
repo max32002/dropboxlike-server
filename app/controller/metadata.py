@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 #encoding=utf-8
 from app.handlers import BaseHandler
-from tornado.options import options
 import logging
-import sqlite3
 from app.controller.meta_manager import MetaManager
-from app.lib import utils
 import json
 import os
 
@@ -77,5 +74,5 @@ class ListFolderHandler(BaseHandler):
         else:
             self.set_status(400)
             self.write(dict(error=dict(message=errorMessage,code=errorCode)))
-            logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
+            #logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
 
