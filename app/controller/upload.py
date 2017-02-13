@@ -6,6 +6,7 @@ import logging
 from app.lib import data_file
 from app.lib import misc
 from app.lib import utils
+from app.lib import thumbnail
 import json
 from app.controller.meta_manager import MetaManager
 import os
@@ -98,7 +99,11 @@ class UploadHandler(BaseHandler):
                 content_hash=misc.md5_file(self.metadata_manager.real_path)
                 #print "content_hash",content_hash
 
-                is_pass_check, query_result, errorMessage = self.metadata_manager.add_metadata(size=size, content_hash=content_hash, client_modified=client_modified)
+                check_metadata = self.metadata_manager.get_path()
+                if check_metadata is None:
+                    is_pass_check, query_result, errorMessage = self.metadata_manager.add_metadata(size=size, content_hash=content_hash, client_modified=client_modified)
+                else:
+                    is_pass_check, query_result, errorMessage = self.metadata_manager.move_metadata(self.metadata_manager.poolid, self.metadata_manager.db_path, size=size, content_hash=content_hash, client_modified=client_modified)
         
         query_result = None
 
@@ -108,6 +113,8 @@ class UploadHandler(BaseHandler):
                 errorMessage = "add metadata in database fail"
                 errorCode = 1023
                 is_pass_check = False
+            else:
+                self._generateThumbnails(self.metadata_manager.real_path, query_result)
 
         if is_pass_check:
             self.write(query_result)
@@ -115,6 +122,14 @@ class UploadHandler(BaseHandler):
             self.set_status(400)
             self.write(dict(error=dict(message=errorMessage,code=errorCode)))
             #logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
+
+    def _generateThumbnails(self,real_path, metadata):
+        #[TOOD]
+        # create thumbnail on server side.
+        doc_id = metadata['id']
+        if doc_id > 0:
+            thumbnail._generateThumbnails(real_path, doc_id)
+
 
     def _createFolder(self, directory_name):
         if not os.path.exists(directory_name):
@@ -149,9 +164,5 @@ class UploadHandler(BaseHandler):
 
         #f_type = path.splitext(path)[-1]
         ret, message = data_file.save(real_path, f_data)
-
-        #[TOOD]
-        # create thumbnail on server side.
-        pass
 
         return ret

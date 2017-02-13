@@ -152,6 +152,11 @@ class MetaManager():
         in_dic['editor'] = self.account
         in_dic['owner'] = self.account
 
+        check_metadata = self.get_path()
+        if not check_metadata is None:
+            # [TODO]: handle special case: same path insert twice, this is conflict.
+            ret = self.delete_metadata()
+
         ret, current_metadata, errorMessage = self.dbo_metadata.insert(in_dic)
         if not current_metadata is None:
             current_metadata = self.convert_for_dropboxlike_dict(current_metadata)

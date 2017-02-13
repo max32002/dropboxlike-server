@@ -130,6 +130,7 @@ CREATE TABLE IF NOT EXISTS `metadata` (
 
             #logging.info("start to insert '%s' to metadata database ...", item_name)
 
+            current_metadata = None
             try:
                 sql = 'insert into metadata (poolid, path, content_hash, rev, size, is_dir, parent, name, client_modified, server_modified, editor, owner)'
                 sql = sql + ' values(?,?,?,?,?,?,?,?,?,?,?,?) '
@@ -240,8 +241,10 @@ CREATE TABLE IF NOT EXISTS `metadata` (
                 
                 # update child node path.
                 # question: is need to update the editor/owner account?
-                sql = 'update metadata set path = ? || substr(path, length(?)+1) , parent = ? || substr(parent, length(?)+1), editor=? where poolid=? and path like ? '
-                self.conn.execute(sql, (path, old_path, path, old_path, in_dic['editor'], old_poolid, old_path+'/%',))
+                if not(old_poolid==poolid and old_path==path):
+                    # skip for file revision.
+                    sql = 'update metadata set path = ? || substr(path, length(?)+1) , parent = ? || substr(parent, length(?)+1), editor=? where poolid=? and path like ? '
+                    self.conn.execute(sql, (path, old_path, path, old_path, in_dic['editor'], old_poolid, old_path+'/%',))
                 #self.conn.commit()
 
                 current_metadata = self.get_metadata(poolid, path)

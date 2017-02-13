@@ -16,6 +16,7 @@ if __name__ == "__main__":
         (r'/1/files/delete', 'app.controller.FileDeleteHandler'),
         # [TODO]:
         (r'/1/files/permanently_delete', 'app.controller.FileDeleteHandler'),
+
         (r'/1/files/copy', 'app.controller.FileCopyHandler'),
         (r'/1/files/move', 'app.controller.FileMoveHandler'),
         (r'/1/files/upload', 'app.controller.UploadHandler'),
@@ -23,8 +24,6 @@ if __name__ == "__main__":
         (r'/1/files/upload_session/append', 'app.controller.UploadSessionAppendHandler'),
         (r'/1/files/upload_session/finish', 'app.controller.UploadSessionFinishHandler'),
         (r'/1/files/download', 'app.controller.DownloadHandler'),
-
-        # [TODO]:
         (r'/1/files/get_thumbnail', 'app.controller.ThumbnailHandler'),
 
         # [TODO]: for streaming

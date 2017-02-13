@@ -110,7 +110,7 @@ class FileDeleteHandler(BaseHandler):
             pass
             
     # [TODO]:
-    # delete fail, file locked.
+    # delete fail, but file locked.
     def _deletePath(self, real_path):
         import shutil
 

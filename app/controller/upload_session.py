@@ -193,9 +193,11 @@ class UploadSessionHandler(BaseHandler):
                     content_hash=misc.md5_file(self.metadata_manager.real_path)
                     #print "content_hash",content_hash
 
-                    is_pass_check, query_result, errorMessage = self.metadata_manager.add_metadata(size=size, content_hash=content_hash, client_modified=client_modified)
-
-        
+                    check_metadata = self.metadata_manager.get_path()
+                    if check_metadata is None:
+                        is_pass_check, query_result, errorMessage = self.metadata_manager.add_metadata(size=size, content_hash=content_hash, client_modified=client_modified)
+                    else:
+                        is_pass_check, query_result, errorMessage = self.metadata_manager.move_metadata(self.metadata_manager.poolid, self.metadata_manager.db_path, size=size, content_hash=content_hash, client_modified=client_modified)
 
         # start to output.
         query_result = {"session_id": session_id}
@@ -206,6 +208,8 @@ class UploadSessionHandler(BaseHandler):
                     errorMessage = "add metadata in database fail"
                     errorCode = 1023
                     is_pass_check = False
+            else:
+                self._generateThumbnails(self.metadata_manager.real_path, query_result)
 
         if is_pass_check:
             if not query_result is None:
@@ -215,6 +219,12 @@ class UploadSessionHandler(BaseHandler):
             self.write(dict(error=dict(message=errorMessage,code=errorCode)))
             #logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
 
+    def _generateThumbnails(self,real_path, metadata):
+        #[TOOD]
+        # create thumbnail on server side.
+        doc_id = metadata['id']
+        if doc_id > 0:
+            thumbnail._generateThumbnails(real_path, doc_id)
 
     def _updateMtimeToFile(self, real_path, client_modified):
         # update access and modify time.

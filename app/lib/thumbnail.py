@@ -4,7 +4,30 @@ from PIL import Image, ImageChops, ImageOps
 from tornado.options import options
 import logging
 
-thumbnail_size_list=[('xs',32,32),('s',64,64),('m',128,128),('l',640,480),('xl',1024,768)]
+thumbnail_size_list=[(32,32),(64,64),(128,128),(640,480),(1024,768)]
+
+_orientation_to_rotation = {
+    3: 180,
+    6: 90,
+    8: 270
+}
+
+_filters_to_pil = {
+    "antialias": Image.ANTIALIAS,
+    "bicubic": Image.BICUBIC,
+    "bilinear": Image.BILINEAR,
+    "nearest": Image.NEAREST
+}
+
+_formats_to_pil = {
+    "gif": "GIF",
+    "jpg": "JPEG",
+    "jpeg": "JPEG",
+    "png": "PNG",
+    "webp": "WEBP",
+    "tiff": "TIFF"
+}
+
 
 # todo: 
 #   my doc_id may conflict(duplicate) between different pool. 
@@ -77,37 +100,52 @@ thumbnail_size_list=[('xs',32,32),('s',64,64),('m',128,128),('l',640,480),('xl',
 #       convient for delete event.
 #       need a recurcive to scan new copied files.
 
+def getThumbnailFolder(doc_id):
+    thumbnail_subfolder = str(doc_id/1000) + "/" + str(doc_id % 1000)
+    thumbnail_folder = '%s/thumbnails/%s/%s' % (options.storage_access_point,thumbnail_subfolder,doc_id)
+    return thumbnail_folder
+
 def _removeThumbnails(doc_id):
-    thumbnail_subfolder = getThumbnailFolderByDocId(doc_id)
-    for size_name,w,h in thumbnail_size_list:
-        thumbnail_path = '%s/thumbnails/%s/%s/%s.png' % (options.storage_access_point,thumbnail_subfolder,size_name,doc_id)
-        logging.info("remove thumbnails at real_path: %s ... ", thumbnail_path)
-        if os.path.isfile(thumbnail_path):
-            os.unlink(thumbnail_path)
+    thumbnail_folder = getThumbnailFolder(doc_id)
+    if os.path.exists(thumbnail_folder):
+        _deletePath(thumbnail_folder)
+
+# [TODO]:
+# delete fail, but file locked.
+def _deletePath(real_path):
+    import shutil
+    if os.path.isfile(real_path):
+        os.unlink(real_path)
+    else:
+        for root, dirs, files in os.walk(real_path):
+            for f in files:
+                os.unlink(os.path.join(root, f))
+            for d in dirs:
+                shutil.rmtree(os.path.join(root, d))
+        shutil.rmtree(real_path)
 
 def _generateThumbnails(src_file, doc_id):
     filename, file_extension = os.path.splitext(src_file)
-    thumbnail_subfolder = getThumbnailFolderByDocId(doc_id)
-    size_list=[('xs',32,32),('s',64,64),('m',128,128),('l',640,480),('xl',1024,768)]
-    for size_name,w,h in thumbnail_size_list:
-        thumbnail_path = '%s/thumbnails/%s/%s/%s.png' % (options.storage_access_point,thumbnail_subfolder,size_name,doc_id)
-        logging.info("generateThumbnails at path: %s ... ", thumbnail_path)
-        size_w_h = (w,h)
-        makeThumb(src_file,thumbnail_path,size=size_w_h,pad=True)
+    thumbnail_folder = getThumbnailFolder(doc_id)
+    for w,h in thumbnail_size_list:
+        filename = "w%sh%s%s" % (str(w), str(h),file_extension)
+        thumbnail_path = os.path.join(thumbnail_folder,filename)
+        #logging.info("generateThumbnails at path: %s ... ", thumbnail_path)
+        makeThumb(src_file,thumbnail_path,size=(w,h),pad=True)
 
-def getThumbnailFolderByDocId(doc_id):
-    #for uuid format.
-    #thumbnail_subfolder = doc_id[:6]
-    thumbnail_subfolder = str(doc_id/100)
-    return thumbnail_subfolder
+def _getThumbnailPath(doc_id, size_name, file_extension):
+    thumbnail_folder = getThumbnailFolder(doc_id)
+    new_filename = "%s%s" % (size_name,file_extension)
+    thumbnail_path = os.path.join(thumbnail_folder,new_filename)
+    return thumbnail_path
 
 def isSupportedFormat(f_in):
-    filename, file_extension = os.path.splitext(f_in)
+    filename, file_extension = os.path.splitext(f_in.lower())
     supported_list = ['.bmp','.eps','.gif','.im','.jpeg','.jpg','.msp','.pcx','.png','.ppm','.tif','.tiff','.webp','.xbm']
     ret_val = False
     #logging.info("file_extension: %s ... ", file_extension)
     if not file_extension is None:
-        if file_extension.lower() in supported_list:
+        if file_extension in supported_list:
             ret_val = True
         else:
             pass
@@ -127,32 +165,65 @@ def prepareThumbnailsFolder(f_out):
 
 def makeThumb(f_in, f_out, size=(64,64), pad=False):
     if os.path.exists(f_in):
-        logging.info("makeThumb thumbnails at real_path: %s to %s ... ", f_in, f_out)
+        #logging.info("makeThumb thumbnails at real_path: %s to %s ... ", f_in, f_out)
         if os.path.exists(f_out):
             # force delete output file.
+            #[TODO]
+            # file locked!
             os.unlink(f_out)
         else:
             # path not found, but we need a folder...
             prepareThumbnailsFolder(f_out)
 
+        filename, file_extension = os.path.splitext(f_in.lower())
+        if file_extension.startswith('.'):
+            file_extension = file_extension[1:]
+        _orig_format = _formats_to_pil.get(file_extension)
+
         # start to open file.
         image = Image.open(f_in)
-        image.thumbnail(size, Image.ANTIALIAS)
+        if _orig_format == "JPEG":
+            image = autorotate(image)
+        
         image_size = image.size
 
         thumb = None
         if pad:
-            thumb = image.crop( (0, 0, size[0], size[1]) )
+            shorter = image_size[0] if image_size[0] < image_size[1] else image_size[1]
 
-            offset_x = max( (size[0] - image_size[0]) / 2, 0 )
-            offset_y = max( (size[1] - image_size[1]) / 2, 0 )
+            offset_x = max( (image_size[0] - shorter) / 2, 0 )
+            offset_y = max( (image_size[1] - shorter) / 2, 0 )
 
-            thumb = ImageChops.offset(thumb, offset_x, offset_y)
+            thumb = image.crop( (offset_x, offset_y, offset_x + shorter, offset_y + shorter) )
 
+            thumb.thumbnail(size, Image.ANTIALIAS)
+            #[TODO]:
+            # .thumbnail() will alway make square image,
+            # to support 640x480 & 1024x768 need use .resize()
+            #thumb = thumb.resize(size)
         else:
             thumb = ImageOps.fit(image, size, Image.ANTIALIAS, (0.5, 0.5))
 
-        thumb.save(f_out)
+        try:
+            thumb.save(f_out)
+        except IOError as e:
+            # no free space or ...
+            errorMessage = 'unable to save thumbnail'
+            logger.error(errorMessage)        
     else:
         # file not found error handle
         pass
+
+
+def autorotate(img):
+    deg = 0
+    exif = None
+    try:
+        exif = img._getexif() or dict()
+        deg = _orientation_to_rotation.get(exif.get(274, 0), 0)
+    except Exception:
+        logger.warn('unable to parse exif')
+
+    img = img.rotate(360 - int(deg))
+    return img
+

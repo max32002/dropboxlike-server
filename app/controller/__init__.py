@@ -16,11 +16,11 @@ from app.controller.upload_session import UploadSessionStartHandler
 from app.controller.upload_session import UploadSessionAppendHandler
 from app.controller.upload_session import UploadSessionFinishHandler
 from app.controller.download import DownloadHandler
+from app.controller.download import ThumbnailHandler
 
 from app.controller.account_info import AccountInfoHandler
 from app.controller.account_info import AccountSecurityQuestionHandler
 
-from app.controller.thumbnail import ThumbnailHandler
 from app.controller.favorite import FavoriteHandler
 from app.controller.websocket import WebSocketHandler
 from app.controller.version import VersionHandler
