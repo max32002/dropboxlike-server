@@ -12,10 +12,10 @@ from app.controller.filedelete import FileDeleteHandler
 from app.controller.filecreatefolder import FileCreateFolderHandler
 
 from app.controller.upload import UploadHandler
+from app.controller.upload_session import UploadSessionStartHandler
+from app.controller.upload_session import UploadSessionAppendHandler
+from app.controller.upload_session import UploadSessionFinishHandler
 from app.controller.download import DownloadHandler
-from app.controller.files import FilesHandler
-from app.controller.files import ChunkUploadHandler
-from app.controller.files import CommitUploadHandler
 
 from app.controller.account_info import AccountInfoHandler
 from app.controller.account_info import AccountSecurityQuestionHandler

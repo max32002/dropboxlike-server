@@ -9,7 +9,7 @@ if __name__ == "__main__":
         (r'/server_info', 'app.controller.VersionHandler'),
         (r'/1/auth/token', 'app.controller.AuthHandler'),
         (r'/1/repo/claim_auth', 'app.controller.RepoClaimAuthHandler'),
-        
+
         (r'/1/files/list_folder', 'app.controller.ListFolderHandler'),
         (r'/1/files/get_metadata', 'app.controller.MetadataHandler'),
         (r'/1/files/create_folder', 'app.controller.FileCreateFolderHandler'),
@@ -19,6 +19,9 @@ if __name__ == "__main__":
         (r'/1/files/copy', 'app.controller.FileCopyHandler'),
         (r'/1/files/move', 'app.controller.FileMoveHandler'),
         (r'/1/files/upload', 'app.controller.UploadHandler'),
+        (r'/1/files/upload_session/start', 'app.controller.UploadSessionStartHandler'),
+        (r'/1/files/upload_session/append', 'app.controller.UploadSessionAppendHandler'),
+        (r'/1/files/upload_session/finish', 'app.controller.UploadSessionFinishHandler'),
         (r'/1/files/download', 'app.controller.DownloadHandler'),
 
         # [TODO]:
@@ -32,9 +35,6 @@ if __name__ == "__main__":
         (r'/1/list_folder/longpoll', 'app.controller.DeltaHandler'),
         (r'/1/list_folder/get_latest_cursor', 'app.controller.CursorHandler'),
         
-        (r'/1/files/chunked_upload(.*)', 'app.controller.ChunkUploadHandler'),
-        (r'/1/files/commit_chunked_upload(.*)', 'app.controller.CommitUploadHandler'),
-
         (r'/1/account/info', 'app.controller.AccountInfoHandler'),
         (r'/1/account/security_question', 'app.controller.AccountSecurityQuestionHandler'),
         # [TODO]:

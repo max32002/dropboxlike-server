@@ -25,20 +25,23 @@ class BaseTable():
             if create_index_string is not None:
                 self.conn.execute(create_index_string)
 
-    def vacuum(self):
+    def vacuum(self, autocommit=True):
         sql = "vacuum;"
         self.conn.execute(sql)
-        self.conn.commit()
+        if autocommit:
+            self.conn.commit()
 
-    def drop(self):
+    def drop(self, autocommit=True):
         sql = 'drop table ' + self.sql_table_name + ';'
         self.conn.execute(sql)
-        self.conn.commit()
+        if autocommit:
+            self.conn.commit()
 
-    def empty(self):
+    def empty(self, autocommit=True):
         sql = 'delete from ' + self.sql_table_name + ';'
         self.conn.execute(sql)
-        self.conn.commit()
+        if autocommit:
+            self.conn.commit()
 
     # return:
     #       True: exist.
@@ -63,16 +66,17 @@ class BaseTable():
     # return:
     #       True: delete successfully.
     #       False: fail.
-    def pk_delete( self, pk_value):
+    def pk_delete( self, pk_value, autocommit=True):
         result = False
         try:
             self.conn.execute('DELETE FROM '+ self.sql_table_name +' WHERE '+ self.sql_primary_key +'=?;', (pk_value,))
-            self.conn.commit()
+            if autocommit:
+                self.conn.commit()
             result = True
         except Exception as error:
             print("Error: {}".format(error))
             #result = error.args[0]
-            raise
+            #raise
         return result
 
 
@@ -86,24 +90,21 @@ class BaseTable():
 
 
     # return:
-    def pk_save(self):
-        out_dic = {}
-        out_dic['error_code'] = ''
-        out_dic['rowcount'] = 0
+    def pk_save(self, autocommit=True):
+        ret = False
         try:
             sql = "INSERT INTO "+ self.sql_table_name +" ("+self.sql_primary_key+") VALUES (null)"
             cursor = self.conn.execute(sql)
-            self.conn.commit()
-            out_dic['lastrowid'] = cursor.lastrowid
+            if autocommit:
+                self.conn.commit()
+            ret = True
         except Exception as error:
             #except sqlite3.IntegrityError:
             #except sqlite3.OperationalError, msg:
             #print("Error: {}".format(error))
-            out_dic['error_code'] = error.args[0]
-            out_dic['error_message'] = "{}".format(error)
             logging.error("sqlite error: %s", "{}".format(error))
             #raise
-        return out_dic
+        return ret
 
         
     # input:
