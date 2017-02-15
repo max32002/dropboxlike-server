@@ -81,7 +81,7 @@ class FileDeleteHandler(BaseHandler):
                 self._deletePath(self.metadata_manager.real_path)
 
             # update metadata in data.
-            is_pass_check = self.metadata_manager.delete_metadata()
+            is_pass_check = self.metadata_manager.delete_metadata(metadata=query_result)
             if not is_pass_check:
                 errorMessage = "delete metadata fail"
                 errorCode = 1030
@@ -95,19 +95,6 @@ class FileDeleteHandler(BaseHandler):
             self.write(dict(error=dict(message=errorMessage,code=errorCode)))
             #logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
 
-
-    def _deleteThumbnails(self, path):
-        if os.path.isfile(real_path):
-            # single file
-            if thumbnail.isSupportedFormat(path):
-                metadata_dic = self.metadata_manager.query(path)
-                if 'doc_id' in metadata_dic:
-                    doc_id = metadata_dic['doc_id']
-                    thumbnail._removeThumbnails(doc_id)
-        else:
-            # [TODO]:
-            # recurcive scan all sub files.
-            pass
             
     # [TODO]:
     # delete fail, but file locked.

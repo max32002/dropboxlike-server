@@ -127,9 +127,6 @@ class BaseHandler(RequestHandler):
                     errorMessage = "path: '%s' did not match pattern." % (path)
                     ret = False
 
-            if path == "/":
-                #PS: dropbox not all path='/''
-                path = ""
 
         return ret, errorMessage
 

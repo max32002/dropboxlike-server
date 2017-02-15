@@ -6,7 +6,6 @@ import logging
 from app.lib import data_file
 from app.lib import misc
 from app.lib import utils
-from app.lib import thumbnail
 import json
 from app.controller.meta_manager import MetaManager
 import os
@@ -113,8 +112,6 @@ class UploadHandler(BaseHandler):
                 errorMessage = "add metadata in database fail"
                 errorCode = 1023
                 is_pass_check = False
-            else:
-                self._generateThumbnails(self.metadata_manager.real_path, query_result)
 
         if is_pass_check:
             self.write(query_result)
@@ -122,13 +119,6 @@ class UploadHandler(BaseHandler):
             self.set_status(400)
             self.write(dict(error=dict(message=errorMessage,code=errorCode)))
             #logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
-
-    def _generateThumbnails(self,real_path, metadata):
-        #[TOOD]
-        # create thumbnail on server side.
-        doc_id = metadata['id']
-        if doc_id > 0:
-            thumbnail._generateThumbnails(real_path, doc_id)
 
 
     def _createFolder(self, directory_name):

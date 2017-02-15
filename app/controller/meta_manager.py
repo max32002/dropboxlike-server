@@ -5,6 +5,7 @@ import logging
 from app.dbo.metadata import DboMetadata
 from app.dbo.pool import DboPoolSubscriber
 from app.lib import utils
+from app.lib import thumbnail
 import json
 import sqlite3
 import os
@@ -46,8 +47,9 @@ class MetaManager():
             self.poolstorage = '%s/storagepool/%s' % (options.storage_access_point,self.poolid)
             #logging.info('options.storage_access_point %s' % (options.storage_access_point))
             #logging.info('poolstorage %s' % (self.poolstorage))
-            metadata_conn = self.open_metadata_db(self.poolid)
-            self.dbo_metadata = DboMetadata(metadata_conn)
+            if self.dbo_metadata  is None:
+                metadata_conn = self.open_metadata_db(self.poolid)
+                self.dbo_metadata = DboMetadata(metadata_conn)
 
             self.db_path = path
             if len(path) > 0:
@@ -69,16 +71,25 @@ class MetaManager():
         return client
 
 
-    def get_path(self):
-        current_metadata = self.dbo_metadata.get_metadata(self.poolid, self.path)
+    def get_path(self, poolid=None, path=None):
+        if poolid is None:
+            poolid = self.poolid
+        if path is None:
+            path = self.db_path
+
+        current_metadata = self.dbo_metadata.get_metadata(poolid, path)
         if not current_metadata is None:
             current_metadata = self.convert_for_dropboxlike_dict(current_metadata)
         return current_metadata
 
-    def list_folder(self):
-        metadata_dic = {}
+    def list_folder(self, poolid=None, path=None):
+        if poolid is None:
+            poolid = self.poolid
+        if path is None:
+            path = self.db_path
 
-        dic_children = self.dbo_metadata.list_folder(self.poolid, self.path)
+        metadata_dic = {}
+        dic_children = self.dbo_metadata.list_folder(poolid, path)
         contents = []
 
         # for small case used.
@@ -120,7 +131,7 @@ class MetaManager():
             out_dic = {}
             out_dic['id'] = tmp_dict['doc_id']
             out_dic['name'] = tmp_dict['name']
-            #out_dic['path'] = tmp_dict['path']
+            out_dic['path'] = tmp_dict['path']
             
             #out_dic['permission'] = "{"write": True}"ll
             out_dic['permission'] = 'r'
@@ -154,12 +165,13 @@ class MetaManager():
 
         check_metadata = self.get_path()
         if not check_metadata is None:
-            # [TODO]: handle special case: same path insert twice, this is conflict.
-            ret = self.delete_metadata()
+            # [TODO]: handle special case: same path insert twice, it is conflict.
+            ret = self.delete_metadata(metadata=metadata)
 
         ret, current_metadata, errorMessage = self.dbo_metadata.insert(in_dic)
         if not current_metadata is None:
             current_metadata = self.convert_for_dropboxlike_dict(current_metadata)
+            self.add_thumbnail(current_metadata)
         return ret, current_metadata, errorMessage
 
     def move_metadata(self, from_poolid, from_path, rev=None, size=None, client_modified=None, is_dir=None, content_hash=None):
@@ -213,13 +225,47 @@ class MetaManager():
         return ret, current_metadata, errorMessage
 
 
-    def delete_metadata(self):
-        # todo: 
-        #   check permission...
+    def delete_metadata(self, metadata=None):
+        # [TODO]: 
+        #   crose pool delete.
         # 
 
         ret = False
-        if not self.poolid is None and not self.db_path is None:
-            ret = self.dbo_metadata.delete(self.poolid, self.db_path, self.account)
+
+        if metadata is None:
+            metadata = self.get_path()
+
+        if not metadata is None:
+            poolid = self.poolid
+            db_path = metadata['path']
+            if not self.poolid is None and not db_path is None:
+                if metadata['type']=="file":
+                    self.delete_thumbnail(metadata)
+                    ret = self.dbo_metadata.delete(poolid, db_path, self.account)
+                else:
+                    # recursive scan subfolder.
+                    subfolders_dict = self.list_folder(poolid, db_path)
+                    if not subfolders_dict is None:
+                        if 'entries' in subfolders_dict:
+                            for item in subfolders_dict['entries']:
+                                self.delete_metadata(metadata=item)
+                    # finally delete folder.
+                    ret = self.dbo_metadata.delete(poolid, db_path, self.account)
         return ret
 
+    
+    def add_thumbnail(self, metadata):
+        #[TOOD]
+        # create thumbnail on server side.
+        doc_id = metadata['id']
+        dir_type = metadata['type']
+        if doc_id > 0 and dir_type=="file":
+            thumbnail._generateThumbnails(self.real_path, doc_id)
+
+    def delete_thumbnail(self, metadata):
+        #[TOOD]
+        # create thumbnail on server side.
+        doc_id = metadata['id']
+        dir_type = metadata['type']
+        if doc_id > 0 and dir_type=="file":
+            thumbnail._removeThumbnails(doc_id)

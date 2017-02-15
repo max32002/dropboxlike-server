@@ -41,6 +41,10 @@ class MetadataHandler(BaseHandler):
                     errorCode = 1002
 
         if is_pass_check:
+            if path == "/":
+                #PS: dropbox not all path='/''
+                path = ""
+
             ret, errorMessage = self.check_path(path)
             if not ret:
                 is_pass_check = False
@@ -70,6 +74,9 @@ class MetadataHandler(BaseHandler):
             if self.mode == "FILE":
                 query_result = self.metadata_manager.get_path()
             else:
+                current_metadata = self.metadata_manager.get_path()
+                if not current_metadata is None:
+                    self.set_header("oid",current_metadata["id"])
                 query_result = self.metadata_manager.list_folder()
 
             if query_result is None:

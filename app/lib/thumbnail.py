@@ -114,6 +114,7 @@ def _removeThumbnails(doc_id):
 # delete fail, but file locked.
 def _deletePath(real_path):
     import shutil
+    #logging.info("delete Thumbnails at path: %s ... ", real_path)
     if os.path.isfile(real_path):
         os.unlink(real_path)
     else:

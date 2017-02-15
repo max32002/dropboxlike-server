@@ -208,8 +208,6 @@ class UploadSessionHandler(BaseHandler):
                     errorMessage = "add metadata in database fail"
                     errorCode = 1023
                     is_pass_check = False
-            else:
-                self._generateThumbnails(self.metadata_manager.real_path, query_result)
 
         if is_pass_check:
             if not query_result is None:
@@ -219,12 +217,6 @@ class UploadSessionHandler(BaseHandler):
             self.write(dict(error=dict(message=errorMessage,code=errorCode)))
             #logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
 
-    def _generateThumbnails(self,real_path, metadata):
-        #[TOOD]
-        # create thumbnail on server side.
-        doc_id = metadata['id']
-        if doc_id > 0:
-            thumbnail._generateThumbnails(real_path, doc_id)
 
     def _updateMtimeToFile(self, real_path, client_modified):
         # update access and modify time.
