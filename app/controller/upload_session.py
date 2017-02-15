@@ -2,6 +2,7 @@
 #fileencoding=utf-8
 
 from app.handlers import BaseHandler
+import tornado.web
 import logging
 from app.lib import data_file
 from app.lib import misc
@@ -216,7 +217,7 @@ class UploadSessionHandler(BaseHandler):
             self.set_status(400)
             self.write(dict(error=dict(message=errorMessage,code=errorCode)))
             #logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
-
+        self.finish()
 
     def _updateMtimeToFile(self, real_path, client_modified):
         # update access and modify time.

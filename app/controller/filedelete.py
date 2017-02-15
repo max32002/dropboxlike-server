@@ -1,13 +1,17 @@
+#!/usr/bin/env python
+#fileencoding=utf-8
+
 from app.handlers import BaseHandler
+import tornado.web
 import logging
 import os
 import json
-from tornado.options import options
 from app.controller.meta_manager import MetaManager
 
 class FileDeleteHandler(BaseHandler):
     metadata_manager = None
 
+    @tornado.web.asynchronous
     def post(self):
         self.set_header('Content-Type','application/json')
 
@@ -81,7 +85,7 @@ class FileDeleteHandler(BaseHandler):
                 self._deletePath(self.metadata_manager.real_path)
 
             # update metadata in data.
-            is_pass_check = self.metadata_manager.delete_metadata(metadata=query_result)
+            is_pass_check = self.metadata_manager.delete_metadata(current_metadata=query_result)
             if not is_pass_check:
                 errorMessage = "delete metadata fail"
                 errorCode = 1030
@@ -94,7 +98,7 @@ class FileDeleteHandler(BaseHandler):
             self.set_status(400)
             self.write(dict(error=dict(message=errorMessage,code=errorCode)))
             #logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
-
+        self.finish()
             
     # [TODO]:
     # delete fail, but file locked.

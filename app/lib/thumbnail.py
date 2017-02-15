@@ -126,13 +126,14 @@ def _deletePath(real_path):
         shutil.rmtree(real_path)
 
 def _generateThumbnails(src_file, doc_id):
-    filename, file_extension = os.path.splitext(src_file)
-    thumbnail_folder = getThumbnailFolder(doc_id)
-    for w,h in thumbnail_size_list:
-        filename = "w%sh%s%s" % (str(w), str(h),file_extension)
-        thumbnail_path = os.path.join(thumbnail_folder,filename)
-        #logging.info("generateThumbnails at path: %s ... ", thumbnail_path)
-        makeThumb(src_file,thumbnail_path,size=(w,h),pad=True)
+    if isSupportedFormat(src_file):
+        filename, file_extension = os.path.splitext(src_file)
+        thumbnail_folder = getThumbnailFolder(doc_id)
+        for w,h in thumbnail_size_list:
+            filename = "w%sh%s%s" % (str(w), str(h),file_extension)
+            thumbnail_path = os.path.join(thumbnail_folder,filename)
+            #logging.info("generateThumbnails at path: %s ... ", thumbnail_path)
+            makeThumb(src_file,thumbnail_path,size=(w,h),pad=True)
 
 def _getThumbnailPath(doc_id, size_name, file_extension):
     thumbnail_folder = getThumbnailFolder(doc_id)

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #encoding=utf-8
 from tornado.options import options
+import tornado.ioloop
 import logging
 from app.dbo.metadata import DboMetadata
 from app.dbo.pool import DboPoolSubscriber
@@ -166,12 +167,13 @@ class MetaManager():
         check_metadata = self.get_path()
         if not check_metadata is None:
             # [TODO]: handle special case: same path insert twice, it is conflict.
-            ret = self.delete_metadata(metadata=metadata)
+            ret = self.delete_metadata(current_metadata=metadata)
 
         ret, current_metadata, errorMessage = self.dbo_metadata.insert(in_dic)
         if not current_metadata is None:
             current_metadata = self.convert_for_dropboxlike_dict(current_metadata)
-            self.add_thumbnail(current_metadata)
+            tornado.ioloop.IOLoop.instance().add_callback(self.add_thumbnail,current_metadata)
+
         return ret, current_metadata, errorMessage
 
     def move_metadata(self, from_poolid, from_path, rev=None, size=None, client_modified=None, is_dir=None, content_hash=None):
@@ -197,6 +199,11 @@ class MetaManager():
         ret, current_metadata, errorMessage = self.dbo_metadata.update(in_dic)
         if not current_metadata is None:
             current_metadata = self.convert_for_dropboxlike_dict(current_metadata)
+            
+            # only need update current node instaed of full sub-tree.
+            if current_metadata['type']=="file":
+                tornado.ioloop.IOLoop.instance().add_callback(self.add_thumbnail,current_metadata)
+
         return ret, current_metadata, errorMessage
 
     def copy_metadata(self, from_poolid, from_path, rev=None, size=None, client_modified=None, is_dir=None, content_hash=None):
@@ -222,33 +229,35 @@ class MetaManager():
         ret, current_metadata, errorMessage = self.dbo_metadata.copy(in_dic)
         if not current_metadata is None:
             current_metadata = self.convert_for_dropboxlike_dict(current_metadata)
+            tornado.ioloop.IOLoop.instance().add_callback(self.add_thumbnail,current_metadata)
+
         return ret, current_metadata, errorMessage
 
 
-    def delete_metadata(self, metadata=None):
+    def delete_metadata(self, current_metadata=None):
         # [TODO]: 
         #   crose pool delete.
         # 
 
         ret = False
 
-        if metadata is None:
-            metadata = self.get_path()
+        if current_metadata is None:
+            current_metadata = self.get_path()
 
-        if not metadata is None:
+        if not current_metadata is None:
             poolid = self.poolid
-            db_path = metadata['path']
+            db_path = current_metadata['path']
             if not self.poolid is None and not db_path is None:
-                if metadata['type']=="file":
-                    self.delete_thumbnail(metadata)
+                if current_metadata['type']=="file":
+                    tornado.ioloop.IOLoop.instance().add_callback(self.delete_thumbnail,current_metadata)
                     ret = self.dbo_metadata.delete(poolid, db_path, self.account)
                 else:
-                    # recursive scan subfolder.
+                    # recursively scan subfolder.
                     subfolders_dict = self.list_folder(poolid, db_path)
                     if not subfolders_dict is None:
                         if 'entries' in subfolders_dict:
                             for item in subfolders_dict['entries']:
-                                self.delete_metadata(metadata=item)
+                                self.delete_metadata(current_metadata=item)
                     # finally delete folder.
                     ret = self.dbo_metadata.delete(poolid, db_path, self.account)
         return ret
@@ -257,10 +266,22 @@ class MetaManager():
     def add_thumbnail(self, metadata):
         #[TOOD]
         # create thumbnail on server side.
+        #[PS]: skip crose pool add.
         doc_id = metadata['id']
         dir_type = metadata['type']
+        db_path = metadata['path']
         if doc_id > 0 and dir_type=="file":
-            thumbnail._generateThumbnails(self.real_path, doc_id)
+            real_path = os.path.join(self.poolstorage, db_path[1:])
+            thumbnail._generateThumbnails(real_path, doc_id)
+        else:
+            # recursively scan subfolder for copy API.
+            # [PS]: skip crose pool copy in this case.
+            subfolders_dict = self.list_folder(self.poolid, db_path)
+            if not subfolders_dict is None:
+                if 'entries' in subfolders_dict:
+                    for item in subfolders_dict['entries']:
+                        self.add_thumbnail(metadata=item)
+
 
     def delete_thumbnail(self, metadata):
         #[TOOD]

@@ -2,6 +2,7 @@
 #fileencoding=utf-8
 
 from app.handlers import BaseHandler
+import tornado.web
 import logging
 from app.lib import data_file
 from app.lib import misc
@@ -14,6 +15,7 @@ from stat import *
 class UploadHandler(BaseHandler):
     metadata_manager = None
 
+    @tornado.web.asynchronous
     def post(self):
         self.set_header('Content-Type','application/json')
 
@@ -119,7 +121,7 @@ class UploadHandler(BaseHandler):
             self.set_status(400)
             self.write(dict(error=dict(message=errorMessage,code=errorCode)))
             #logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
-
+        self.finish()
 
     def _createFolder(self, directory_name):
         if not os.path.exists(directory_name):

@@ -1,8 +1,12 @@
+#!/usr/bin/env python
+#fileencoding=utf-8
+
+
 from app.handlers import BaseHandler
+import tornado.web
 import logging
 import os
 import json
-from tornado.options import options
 import shutil
 from app.controller.meta_manager import MetaManager
 
@@ -13,6 +17,7 @@ class FileCopyMoveHandler(BaseHandler):
     OPERATION_COPY = "FileCopy"
     OPERATION_MOVE = "FileMove"
 
+    @tornado.web.asynchronous
     def post(self):
         self.set_header('Content-Type','application/json')
 
@@ -184,7 +189,7 @@ class FileCopyMoveHandler(BaseHandler):
             self.set_status(400)
             self.write(dict(error=dict(message=errorMessage,code=errorCode)))
             #logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
-
+        self.finish()
 
     def _createFolder(self, directory_name):
         if not os.path.exists(directory_name):
