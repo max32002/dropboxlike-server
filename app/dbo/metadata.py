@@ -111,16 +111,16 @@ CREATE TABLE IF NOT EXISTS `metadata` (
         path = in_dic.get('path', '')
 
         if ret:
+            # skip parent's commit.
+            if self.last_transaction_path is None:
+                self.last_transaction_path = path
+
             # get parent node by path
             parent_node = None
             item_name = path
             if len(path) > 0:
                 parent_node, item_name = os.path.split(path)
                 #print "parent_node, item_name:", parent_node, item_name
-
-                # skip parent's commit.
-                if self.last_transaction_path is None:
-                    self.last_transaction_path = path
 
                 if not parent_node is None:
                     if parent_node == "/":
@@ -209,18 +209,22 @@ CREATE TABLE IF NOT EXISTS `metadata` (
                 ret = False
 
         if ret:
-            # get parent node by path
-            parent_node, item_name = os.path.split(path)
-
             # skip parent's commit.
             if self.last_transaction_path is None:
                 self.last_transaction_path = path
 
-            if not parent_node is None:
-                if parent_node == "/":
-                    parent_node = ""
-                self.check_and_create_parent(poolid, parent_node, in_dic['editor'])
-            logging.info("update '%s' to metadata database ...", item_name)
+            # get parent node by path
+            parent_node = None
+            item_name = path
+            if len(path) > 0:
+                # get parent node by path
+                parent_node, item_name = os.path.split(path)
+
+                if not parent_node is None:
+                    if parent_node == "/":
+                        parent_node = ""
+                    self.check_and_create_parent(poolid, parent_node, in_dic['editor'])
+            #logging.info("update '%s' to metadata database ...", item_name)
 
             try:
                 sql = 'update metadata set poolid=?, path = ?'
@@ -326,19 +330,23 @@ CREATE TABLE IF NOT EXISTS `metadata` (
                 ret = False
 
         if ret:
-            # get parent node by path
-            parent_node, item_name = os.path.split(path)
-
             # skip parent's commit.
             if self.last_transaction_path is None:
                 self.last_transaction_path = path
 
-            if not parent_node is None:
-                if parent_node == "/":
-                    parent_node = ""
-                self.check_and_create_parent(poolid, parent_node, in_dic['editor'])
+            # get parent node by path
+            parent_node = None
+            item_name = path
+            if len(path) > 0:
+                # get parent node by path
+                parent_node, item_name = os.path.split(path)
 
-            logging.info("copy '%s' to metadata database ...", item_name)
+                if not parent_node is None:
+                    if parent_node == "/":
+                        parent_node = ""
+                    self.check_and_create_parent(poolid, parent_node, in_dic['editor'])
+
+            #logging.info("copy '%s' to metadata database ...", item_name)
 
             try:
                 #[TODO]: generate new rev for new file.

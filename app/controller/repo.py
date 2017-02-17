@@ -211,7 +211,7 @@ class RepoClaimAuthHandler(BaseHandler):
         else:
             self.set_status(400)
             self.write(dict(error=dict(message=errorMessage,code=errorCode)))
-            #self.render('auth_fail.json', account='u12345')
+            #logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
 
     def create_repo_pool(self, user_account):
         errorMessage = ""
@@ -223,6 +223,7 @@ class RepoClaimAuthHandler(BaseHandler):
             # each time claim, reset old data.
             pool_dbo.empty()
 
+        # TOOD: here should begin trans. and able to rollback.
         is_pass_check, poolid = pool_dbo.add(user_account, is_root)
         if is_pass_check:
             if poolid > 0:
@@ -248,6 +249,15 @@ class RepoClaimAuthHandler(BaseHandler):
                 user_home = '%s/storagepool/%s' % (options.storage_access_point, poolid)
                 self._mkdir_recursive(user_home)
 
+                from app.controller.meta_manager import MetaManager
+                user_dict = {'account':user_account,'poolid':poolid}
+                metadata_manager = MetaManager(self.application.sql_client, user_dict, "")
+                is_pass_check, query_result, errorMessage = metadata_manager.add_metadata(is_dir=1)
+                #print "query_result", query_result
+                if not is_pass_check:
+                    #errorMessage = "add metadata in database fail"
+                    errorCode = 1040
+
                 # set server claimed.
                 self.application.claimed = True
 
@@ -262,9 +272,7 @@ class RepoClaimAuthHandler(BaseHandler):
 
     def call_repo_confirm_api(self, pincode_dict, request_id, client_md5, repo_title):
         api_reg_pattern = "1/repo/claim_confirm"
-        #api_hostname = "claim.dropboxlike.com"
-        api_hostname = "127.0.0.1"
-        api_url = "https://%s/%s" % (api_hostname,api_reg_pattern)
+        api_url = "https://%s/%s" % (options.api_hostname,api_reg_pattern)
 
         confirm_dict = self.prepare_confirm_json_body()
         confirm_dict['sn'] = pincode_dict['sn']

@@ -172,7 +172,8 @@ class MetaManager():
         ret, current_metadata, errorMessage = self.dbo_metadata.insert(in_dic)
         if not current_metadata is None:
             current_metadata = self.convert_for_dropboxlike_dict(current_metadata)
-            tornado.ioloop.IOLoop.instance().add_callback(self.add_thumbnail,current_metadata)
+            if current_metadata['type']=="file":
+                tornado.ioloop.IOLoop.instance().add_callback(self.add_thumbnail,current_metadata)
 
         return ret, current_metadata, errorMessage
 
@@ -229,6 +230,7 @@ class MetaManager():
         ret, current_metadata, errorMessage = self.dbo_metadata.copy(in_dic)
         if not current_metadata is None:
             current_metadata = self.convert_for_dropboxlike_dict(current_metadata)
+            # no matter file or folder should scan sub-folder.
             tornado.ioloop.IOLoop.instance().add_callback(self.add_thumbnail,current_metadata)
 
         return ret, current_metadata, errorMessage
