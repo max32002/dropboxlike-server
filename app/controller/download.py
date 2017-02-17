@@ -42,6 +42,9 @@ class DownloadHandler(BaseHandler):
         path = None
         format = None
         size = "w64h64"
+        start = None
+        length =  None
+        rev = None
         if is_pass_check:
             is_pass_check = False
             #logging.info('%s' % (str(_body)))
@@ -49,6 +52,12 @@ class DownloadHandler(BaseHandler):
                 try :
                     if 'path' in _body:
                         path = _body['path']
+                    if 'start' in _body:
+                        start = _body['start']
+                    if 'length' in _body:
+                        length = _body['length']
+                    if 'rev' in _body:
+                        rev = _body['rev']
 
                     # for thumbnail.
                     if 'format' in _body:
