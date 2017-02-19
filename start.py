@@ -34,8 +34,8 @@ if __name__ == "__main__":
         (r'/1/list_folder/longpoll', 'app.controller.DeltaHandler'),
         (r'/1/list_folder/get_latest_cursor', 'app.controller.CursorHandler'),
         
-        (r'/1/account/info', 'app.controller.AccountInfoHandler'),
-        (r'/1/account/security_question', 'app.controller.AccountSecurityQuestionHandler'),
+        (r'/1/users/get_space_usage', 'app.controller.AccountUsageHandler'),
+        (r'/1/users/security_question', 'app.controller.AccountSecurityQuestionHandler'),
         # [TODO]:
         (r'/1/favorite', 'app.controller.FavoriteHandler'),
         ]

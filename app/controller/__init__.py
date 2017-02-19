@@ -18,7 +18,7 @@ from app.controller.upload_session import UploadSessionFinishHandler
 from app.controller.download import DownloadHandler
 from app.controller.download import ThumbnailHandler
 
-from app.controller.account_info import AccountInfoHandler
+from app.controller.account_info import AccountUsageHandler
 from app.controller.account_info import AccountSecurityQuestionHandler
 
 from app.controller.favorite import FavoriteHandler

@@ -263,7 +263,6 @@ class MetaManager():
                     # finally delete folder.
                     ret = self.dbo_metadata.delete(poolid, db_path, self.account)
         return ret
-
     
     def add_thumbnail(self, metadata):
         #[TOOD]
@@ -284,7 +283,6 @@ class MetaManager():
                     for item in subfolders_dict['entries']:
                         self.add_thumbnail(metadata=item)
 
-
     def delete_thumbnail(self, metadata):
         #[TOOD]
         # create thumbnail on server side.
@@ -292,3 +290,8 @@ class MetaManager():
         dir_type = metadata['type']
         if doc_id > 0 and dir_type=="file":
             thumbnail._removeThumbnails(doc_id)
+
+    def count_usage(self, poolid=None):
+        if poolid is None:
+            poolid = self.poolid
+        return self.dbo_metadata.get_space_usage(poolid)

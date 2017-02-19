@@ -3,23 +3,40 @@ from tornado.options import options
 import logging
 from app.lib import utils
 
-class AccountInfoHandler(BaseHandler):
-    ''' Acount Info API Controller'''
+from app.controller.meta_manager import MetaManager
 
-    def get(self):
+class AccountUsageHandler(BaseHandler):
+    ''' Acount Info API Controller'''
+    metadata_manager = None
+
+    def post(self):
         self.set_header('Content-Type','application/json')
 
         is_pass_check = True
         errorMessage = ""
         errorCode = 0
 
+        used = 0
+        if is_pass_check:
+            self.metadata_manager = MetaManager(self.application.sql_client, self.current_user, "")
+            used = self.metadata_manager.count_usage()
+
+        allocated = self.get_free_space(options.storage_access_point)
+
+
         if is_pass_check:
             self.set_status(200)
-            dict_usage = {'used':0,'trash':0,'quota':0}
+            dict_usage = {'used': used,'trash': 0, 'allocated': allocated}
             self.write(dict_usage)
         else:
             self.set_status(400)
             self.write(dict(error=dict(message=errorMessage,code=errorCode)))
+
+    def get_free_space(self, path):
+        import os
+        s = os.statvfs(path)
+        f = (s.f_bavail * s.f_frsize) / 1024
+        return f
 
 class AccountSecurityQuestionHandler(BaseHandler):
     ''' Acount Security Question API Controller'''

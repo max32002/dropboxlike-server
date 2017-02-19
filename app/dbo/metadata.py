@@ -409,3 +409,16 @@ CREATE TABLE IF NOT EXISTS `metadata` (
                 logging.error(errorMessage)
 
         return ret, errorMessage
+
+    # get current path metadata.
+    def get_space_usage( self, poolid):
+        ret = 0
+        sql = 'SELECT sum(size) as usage FROM '+ self.sql_table_name +' WHERE poolid=?'
+        #print "sql:",sql, poolid
+        cursor = self.conn.execute(sql, (poolid,))
+        row_array = self.get_dict_by_cursor(cursor)
+        if len(row_array) > 0:
+            row = row_array[0]
+            if 'usage' in row:
+                ret = row['usage']
+        return ret 
