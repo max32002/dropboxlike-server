@@ -142,10 +142,10 @@ class FileCopyMoveHandler(BaseHandler):
         # handle special case: when database & storage is not synced!
         # real file deleted on server, but metadata exist.
         # for now, just delete server side metadata.
-        query_result = None
+        current_metadata = None
         if is_pass_check:
-            query_result = self.to_metadata_manager.get_path()
-            if not query_result is None:
+            current_metadata = self.to_metadata_manager.get_path()
+            if not current_metadata is None:
                 # delete to_path metadata.
                 is_pass_check = self.to_metadata_manager.delete_metadata()
                 if not is_pass_check:
@@ -159,16 +159,16 @@ class FileCopyMoveHandler(BaseHandler):
             
             # update metadata. (owner)
             if self.operation is self.OPERATION_COPY:
-                is_pass_check, query_result, errorMessage = self.to_metadata_manager.copy_metadata(self.from_metadata_manager.poolid, self.from_metadata_manager.db_path)
-                if query_result is None:
+                is_pass_check, current_metadata, errorMessage = self.to_metadata_manager.copy_metadata(self.from_metadata_manager.poolid, self.from_metadata_manager.db_path)
+                if current_metadata is None:
                     errorMessage = "metadata not found"
                     errorCode = 1040
                     is_pass_check = False
 
                 #self.to_metadata_manager.copy(from_path, to_path, is_dir=is_dir)
             if self.operation is self.OPERATION_MOVE:
-                is_pass_check, query_result, errorMessage = self.to_metadata_manager.move_metadata(self.from_metadata_manager.poolid, self.from_metadata_manager.db_path)
-                if query_result is None:
+                is_pass_check, current_metadata, errorMessage = self.to_metadata_manager.move_metadata(self.from_metadata_manager.poolid, self.from_metadata_manager.db_path)
+                if current_metadata is None:
                     errorMessage = "metadata not found"
                     errorCode = 1040
                     is_pass_check = False
@@ -184,7 +184,9 @@ class FileCopyMoveHandler(BaseHandler):
 
 
         if is_pass_check:
-            self.write(query_result)
+            if not current_metadata is None:
+                self.set_header("oid",current_metadata["id"])
+                self.write(current_metadata)
         else:
             self.set_status(400)
             self.write(dict(error=dict(message=errorMessage,code=errorCode)))

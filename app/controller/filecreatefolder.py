@@ -61,10 +61,10 @@ class FileCreateFolderHandler(BaseHandler):
                 errorCode = 1020
                 is_pass_check = False
 
-        query_result = None
+        current_metadata = None
         if is_pass_check:
-            query_result = self.metadata_manager.get_path()
-            if not query_result is None:
+            current_metadata = self.metadata_manager.get_path()
+            if not current_metadata is None:
                 errorMessage = "metadata exist"
                 errorCode = 1021
                 is_pass_check = False
@@ -73,19 +73,20 @@ class FileCreateFolderHandler(BaseHandler):
                 # [TODO]: create server side folders but not files!
                 pass
 
-        query_result = None
         if is_pass_check:
             logging.info('Create real path at:%s' % (self.metadata_manager.real_path))
             self._createFolder(self.metadata_manager.real_path)
 
             # update metadata. (owner)
-            is_pass_check, query_result, errorMessage = self.metadata_manager.add_metadata(is_dir=1)
+            is_pass_check, current_metadata, errorMessage = self.metadata_manager.add_metadata(is_dir=1)
             if not is_pass_check:
                 #errorMessage = "add metadata in database fail"
                 errorCode = 1022
 
         if is_pass_check:
-            self.write(query_result)
+            if not current_metadata is None:
+                self.set_header("oid",current_metadata["id"])
+                self.write(current_metadata)
         else:
             self.set_status(400)
             self.write(dict(error=dict(message=errorMessage,code=errorCode)))

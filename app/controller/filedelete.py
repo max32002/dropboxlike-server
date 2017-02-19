@@ -71,10 +71,10 @@ class FileDeleteHandler(BaseHandler):
                 errorCode = 1020
                 is_pass_check = False
 
-        query_result = None
+        current_metadata = None
         if is_pass_check:
-            query_result = self.metadata_manager.get_path()
-            if query_result is None:
+            current_metadata = self.metadata_manager.get_path()
+            if current_metadata is None:
                 errorMessage = "metadata not found"
                 errorCode = 1021
                 is_pass_check = False
@@ -85,7 +85,7 @@ class FileDeleteHandler(BaseHandler):
                 self._deletePath(self.metadata_manager.real_path)
 
             # update metadata in data.
-            is_pass_check = self.metadata_manager.delete_metadata(current_metadata=query_result)
+            is_pass_check = self.metadata_manager.delete_metadata(current_metadata=current_metadata)
             if not is_pass_check:
                 errorMessage = "delete metadata fail"
                 errorCode = 1030
@@ -93,7 +93,9 @@ class FileDeleteHandler(BaseHandler):
 
 
         if is_pass_check:
-            self.write(query_result)
+            if not current_metadata is None:
+                self.set_header("oid",current_metadata["id"])
+                self.write(current_metadata)
         else:
             self.set_status(400)
             self.write(dict(error=dict(message=errorMessage,code=errorCode)))

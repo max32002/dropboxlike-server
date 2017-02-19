@@ -12,6 +12,9 @@ class DownloadHandler(BaseHandler):
     mode = "FILE"
     metadata_manager = None
 
+    def get(self):
+        self.post()
+
     def post(self):
         self.set_header('Content-Type','application/json')
 

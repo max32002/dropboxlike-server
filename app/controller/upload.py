@@ -90,9 +90,10 @@ class UploadHandler(BaseHandler):
 
             # update metadata. (owner)
             if os.path.exists(self.metadata_manager.real_path):
-                is_pass_check, errorMessage = self._updateMtimeToFile(self.metadata_manager.real_path, client_modified)
-                if not is_pass_check:
-                    errorCode = 1022
+                if not client_modified is None:
+                    is_pass_check, errorMessage = self._updateMtimeToFile(self.metadata_manager.real_path, client_modified)
+                    if not is_pass_check:
+                        errorCode = 1022
 
                 size=os.stat(self.metadata_manager.real_path).st_size
                 #print "size",size
