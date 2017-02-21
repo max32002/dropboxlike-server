@@ -44,20 +44,23 @@ class UploadSessionHandler(BaseHandler):
 
         if is_pass_check:
             if apiArg is None:
-                is_pass_check = False
-                errorMessage = "wrong json format"
-                errorCode = 1001
+                pass
+                #is_pass_check = False
+                #errorMessage = "wrong json format"
+                #errorCode = 1001
 
         _body = None
         if is_pass_check:
-            is_pass_check = False
-            try :
-                _body = json.loads(apiArg)
-                is_pass_check = True
-            except Exception:
-                errorMessage = "wrong json format"
-                errorCode = 1001
-                pass
+            # allow without arg
+            if not apiArg is None:
+                is_pass_check = False
+                try :
+                    _body = json.loads(apiArg)
+                    is_pass_check = True
+                except Exception:
+                    errorMessage = "parse json fail"
+                    errorCode = 1001
+                    pass
 
         path = None
         mode = None
@@ -69,9 +72,9 @@ class UploadSessionHandler(BaseHandler):
         offset = 0
 
         if is_pass_check:
-            is_pass_check = False
-            #logging.info('%s' % (str(_body)))
             if _body:
+                is_pass_check = False
+                #logging.info('%s' % (str(_body)))
                 try :
                     if 'cursor' in _body:
                         cursor = _body['cursor']
@@ -93,7 +96,7 @@ class UploadSessionHandler(BaseHandler):
                             mute = commit['mute']
                     is_pass_check = True
                 except Exception:
-                    errorMessage = "parse json fail"
+                    errorMessage = "read info from json fail"
                     errorCode = 1002
 
         self.dbo_chunk_upload = DboChunkUpload(self.application.sql_client)
@@ -127,13 +130,14 @@ class UploadSessionHandler(BaseHandler):
                     errorCode = 1012
                     is_pass_check = False
 
+        if self.action == "SessionAppend":
             if is_pass_check:
                 if offset is None:
                     errorMessage = "offset is empty"
                     errorCode = 1013
                     is_pass_check = False
-        else:
-            #if self.action == "SessionStart":
+
+        if self.action == "SessionStart":
             session_id = self.new_session_id()
             offset = 0
             if session_id is None:
@@ -150,6 +154,7 @@ class UploadSessionHandler(BaseHandler):
         session_real_path = None
         if is_pass_check:
             session_real_path = '%s/upload_session/%s' % (options.storage_access_point,session_id)
+            print "session_real_path",session_real_path
             logging.info('Upload to real path at:%s' % (session_real_path))
 
             if self.action == "SessionAppend" or self.action == "SessionFinish":
@@ -160,9 +165,10 @@ class UploadSessionHandler(BaseHandler):
 
         if is_pass_check:
             #print "offset", offset
-            is_pass_check, errorMessage = self._write_offset(session_real_path, self.request.body, offset)
-            if not is_pass_check:
-                errorCode = 1012
+            if not offset is None and not self.request.body is None:
+                is_pass_check, errorMessage = self._write_offset(session_real_path, self.request.body, offset)
+                if not is_pass_check:
+                    errorCode = 1012
 
         if self.action == "SessionFinish":
             if is_pass_check:
@@ -171,7 +177,16 @@ class UploadSessionHandler(BaseHandler):
 
                     # need implement a revision feature.
                     # need move target to versions folder.
-                    os.unlink(self.metadata_manager.real_path)
+                    try:
+                        os.unlink(self.metadata_manager.real_path)
+                    except Exception as error:
+                        errorMessage = "{}".format(error)
+                        logging.error(errorMessage)
+                        pass
+                else:
+                    # MUST make sure folder exist, else move will fail.
+                    head, tail = os.path.split(self.metadata_manager.real_path)
+                    self._createFolder(head)
 
                 import shutil
                 shutil.move(session_real_path, self.metadata_manager.real_path)
@@ -255,10 +270,11 @@ class UploadSessionHandler(BaseHandler):
         head, tail = os.path.split(real_path)
         self._createFolder(head)
         try:
-            f = open(real_path, mode)
-            f.seek(offset)
-            f.write(data)
-            f.close()
+            if not data is None:
+                f = open(real_path, mode)
+                f.seek(offset)
+                f.write(data)
+                f.close()
             ret = True
         #except IOError as error:
         except Exception as error:

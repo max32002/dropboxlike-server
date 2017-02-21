@@ -108,7 +108,13 @@ class FileDeleteHandler(BaseHandler):
         import shutil
 
         if os.path.isfile(real_path):
-            os.unlink(real_path)
+            try:
+                os.unlink(real_path)
+            except Exception as error:
+                errorMessage = "{}".format(error)
+                logging.error(errorMessage)
+                pass
+
         else:
             for root, dirs, files in os.walk(real_path):
                 for f in files:
