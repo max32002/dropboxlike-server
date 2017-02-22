@@ -83,7 +83,6 @@ class UploadHandler(BaseHandler):
         if is_pass_check:
             self.metadata_manager = MetaManager(self.application.sql_client, self.current_user, path)
 
-
         if is_pass_check:
             logging.info('Upload to real path at:%s' % (self.metadata_manager.real_path))
             is_pass_check = self._saveFile(self.metadata_manager.real_path, self.request.body)
@@ -141,6 +140,8 @@ class UploadHandler(BaseHandler):
             #st = os.stat(real_path)
             #atime = st[ST_ATIME]
             atime = utils.get_timestamp()
+            if client_modified is None:
+                client_modified = atime
             os.utime(real_path, (atime,client_modified))
             is_pass_check = True
         except Exception as error:

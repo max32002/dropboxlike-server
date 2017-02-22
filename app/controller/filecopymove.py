@@ -180,7 +180,8 @@ class FileCopyMoveHandler(BaseHandler):
 
         if is_pass_check:
             # must everyday is done, thus to move files.
-            self._copymove(self.from_metadata_manager.real_path,self.to_metadata_manager.real_path,self.operation)
+            #self._copymove(self.from_metadata_manager.real_path,self.to_metadata_manager.real_path,self.operation)
+            tornado.ioloop.IOLoop.instance().add_callback(self._copymove,self.from_metadata_manager.real_path,self.to_metadata_manager.real_path,self.operation)
 
 
         if is_pass_check:
@@ -211,7 +212,7 @@ class FileCopyMoveHandler(BaseHandler):
                 shutil.move(src, dst)
         else:
             # folder to folder copy/move.
-            logging.info("%s sub-folder from %s to %s.", operation, src, dst)
+            #logging.info("%s sub-folder from %s to %s.", operation, src, dst)
             if operation is self.OPERATION_COPY:
                 self.copyrecursively(src, dst)
             elif operation is self.OPERATION_MOVE:

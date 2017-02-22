@@ -69,7 +69,7 @@ class UploadSessionHandler(BaseHandler):
         mute = None
 
         session_id = None
-        offset = 0
+        offset = None
 
         if is_pass_check:
             if _body:
@@ -164,7 +164,6 @@ class UploadSessionHandler(BaseHandler):
                     is_pass_check = False
 
         if is_pass_check:
-            #print "offset", offset
             if not offset is None and not self.request.body is None:
                 is_pass_check, errorMessage = self._write_offset(session_real_path, self.request.body, offset)
                 if not is_pass_check:
@@ -244,6 +243,8 @@ class UploadSessionHandler(BaseHandler):
             #st = os.stat(real_path)
             #atime = st[ST_ATIME]
             atime = utils.get_timestamp()
+            if client_modified is None:
+                client_modified = atime
             os.utime(real_path, (atime,client_modified))
             is_pass_check = True
         except Exception as error:

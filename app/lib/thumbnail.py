@@ -133,7 +133,9 @@ def _generateThumbnails(src_file, doc_id):
             filename = "w%sh%s%s" % (str(w), str(h),file_extension)
             thumbnail_path = os.path.join(thumbnail_folder,filename)
             #logging.info("generateThumbnails at path: %s ... ", thumbnail_path)
-            makeThumb(src_file,thumbnail_path,size=(w,h),pad=True)
+            ret = makeThumb(src_file,thumbnail_path,size=(w,h),pad=True)
+            if not ret:
+                break
 
 def _getThumbnailPath(doc_id, size_name, file_extension):
     thumbnail_folder = getThumbnailFolder(doc_id)
@@ -166,6 +168,9 @@ def prepareThumbnailsFolder(f_out):
             pass
 
 def makeThumb(f_in, f_out, size=(64,64), pad=False):
+    ret = False
+    image = None
+
     if os.path.exists(f_in):
         #logging.info("makeThumb thumbnails at real_path: %s to %s ... ", f_in, f_out)
         if os.path.exists(f_out):
@@ -180,13 +185,20 @@ def makeThumb(f_in, f_out, size=(64,64), pad=False):
         filename, file_extension = os.path.splitext(f_in.lower())
         if file_extension.startswith('.'):
             file_extension = file_extension[1:]
+
         _orig_format = _formats_to_pil.get(file_extension)
 
         # start to open file.
-        image = Image.open(f_in)
-        if _orig_format == "JPEG":
-            image = autorotate(image)
-        
+        try :
+            image = Image.open(f_in)
+            if _orig_format == "JPEG":
+                image = autorotate(image)
+        except Exception as error:
+            errorMessage = "{}".format(error)
+            logging.error(errorMessage)
+            pass
+
+    if not image is None:
         image_size = image.size
 
         thumb = None
@@ -208,6 +220,7 @@ def makeThumb(f_in, f_out, size=(64,64), pad=False):
 
         try:
             thumb.save(f_out)
+            ret = True
         except IOError as e:
             # no free space or ...
             errorMessage = 'unable to save thumbnail'
@@ -216,6 +229,7 @@ def makeThumb(f_in, f_out, size=(64,64), pad=False):
         # file not found error handle
         pass
 
+    return ret
 
 def autorotate(img):
     deg = 0
