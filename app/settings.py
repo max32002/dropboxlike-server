@@ -35,7 +35,7 @@ def define_app_options():
     storage_access_point = os.path.join(app_root, 'storage')
     define('storage_access_point', default=storage_access_point)
 
-    certificate_path = os.path.join(app_root, 'app/certs')
+    certificate_path = os.path.join(app_root, 'certs')
     define('certificate_path', default=certificate_path)
 
     sys_db = os.path.join(options.storage_access_point, 'dropboxlike.db')

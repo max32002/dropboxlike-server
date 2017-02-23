@@ -37,7 +37,7 @@ if __name__ == "__main__":
         (r'/1/users/get_space_usage', 'app.controller.AccountUsageHandler'),
         (r'/1/users/security_question', 'app.controller.AccountSecurityQuestionHandler'),
         # [TODO]:
-        (r'/1/favorite', 'app.controller.FavoriteHandler'),
+        #(r'/1/favorite', 'app.controller.FavoriteHandler'),
         ]
 
     server = MaxDropboxLikeWeb(routes)

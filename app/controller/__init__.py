@@ -21,7 +21,7 @@ from app.controller.download import ThumbnailHandler
 from app.controller.account_info import AccountUsageHandler
 from app.controller.account_info import AccountSecurityQuestionHandler
 
-from app.controller.favorite import FavoriteHandler
+#from app.controller.favorite import FavoriteHandler
 from app.controller.websocket import WebSocketHandler
 from app.controller.version import VersionHandler
 
