@@ -6,6 +6,7 @@ from tornado.options import define
 from tornado.options import options
 import tempfile
 import os
+import sys
 
 
 def define_app_options():
@@ -24,7 +25,12 @@ def define_app_options():
     database_schema_version = 1
     define('database_schema_version', database_schema_version)
 
-    app_root = os.path.abspath(os.path.join(os.path.dirname(__file__),".."))
+    basis = ""
+    if hasattr(sys, 'frozen'):
+        basis = sys.executable
+    else:
+        basis = sys.argv[0]
+    app_root = os.path.dirname(basis)
 
     storage_access_point = os.path.join(app_root, 'storage')
     define('storage_access_point', default=storage_access_point)

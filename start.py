@@ -40,7 +40,6 @@ if __name__ == "__main__":
         (r'/1/favorite', 'app.controller.FavoriteHandler'),
         ]
 
-    template_path = os.path.abspath(os.path.join(os.path.dirname(__file__) , 'templates'))
-    server = MaxDropboxLikeWeb(routes,template_path)
+    server = MaxDropboxLikeWeb(routes)
     
     server.run()

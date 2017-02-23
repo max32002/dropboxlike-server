@@ -26,8 +26,6 @@ class MaxDropboxLikeWeb(object):
 
         parse_command_line(final=True)
 
-        self_dir_path = os.path.abspath(os.path.join(os.path.dirname(__file__),".."))
-
         return {
             'default_handler_class': MyErrorHandler,
             'default_handler_args': dict(status_code=404),
@@ -35,7 +33,7 @@ class MaxDropboxLikeWeb(object):
             'claimed': claimed
         }
 
-    def __init__(self, routes, template_path, proj_static_paths=[],
+    def __init__(self, routes, template_path=None, proj_static_paths=[],
                  **more_settings):
         the_settings = self.get_settings(template_path, proj_static_paths)
         the_settings.update(more_settings)

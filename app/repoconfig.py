@@ -458,8 +458,10 @@ def write_properties(filename, dictionary, delimiter=':'):
 def read_config_file(path):
     ret = True
 
-    config = {'__file__': os.path.abspath(path)}
+    config_path = os.path.abspath(path)
+    config = {'__file__': config_path}
     new_body = ""
+    #print "read config at path:", config_path
     with open(path, 'rb') as f:
         try:
             exec_in(native_str(f.read()), config, config)
