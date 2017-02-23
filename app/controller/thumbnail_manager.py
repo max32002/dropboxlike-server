@@ -5,7 +5,6 @@ import sqlite3
 from app.lib import thumbnail
 
 class ThumbnailManager():
-    '''!Thumbnail API Controller'''
     dbo_thumbnail = None
 
     def __init__(self, thumbnail_conn):

@@ -6,7 +6,6 @@ from app.lib import utils
 from app.controller.meta_manager import MetaManager
 
 class AccountUsageHandler(BaseHandler):
-    ''' Acount Info API Controller'''
     metadata_manager = None
 
     def post(self):
