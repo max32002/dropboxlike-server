@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #encoding=utf-8
 import os
-#import logging
+import logging
 import sqlite3
 from dbo.repo import DboRepo
 from dbo.pincode import DboPincode
@@ -94,10 +94,8 @@ def call_repo_register_api():
             try :
                 json_obj = json.loads(new_html_string)
             except ValueError as err:  # includes simplejson.decoder.JSONDecodeError
-                #print('except:%s' % (str(err)))
                 json_obj = None
             except Exception as err:
-                #print('except:%s' % (str(err)))
                 json_obj = None
     return http_code,json_obj
 
@@ -239,10 +237,8 @@ def call_repo_query_api(pincode, sn):
             try :
                 json_obj = json.loads(new_html_string)
             except ValueError as err:  # includes simplejson.decoder.JSONDecodeError
-                #print('except:%s' % (str(err)))
                 json_obj = None
             except Exception as err:
-                #print('except:%s' % (str(err)))
                 json_obj = None
     return http_code,json_obj
 
@@ -269,10 +265,8 @@ def call_claimed_repo_update_api(repo_token):
             try :
                 json_obj = json.loads(new_html_string)
             except ValueError as err:  # includes simplejson.decoder.JSONDecodeError
-                #print('except:%s' % (str(err)))
                 json_obj = None
             except Exception as err:
-                #print('except:%s' % (str(err)))
                 json_obj = None
     return http_code,json_obj
 
@@ -366,11 +360,11 @@ def generate_pincode():
                         is_need_terminate_message = "Can't connect to dropboxlike register server, please try again later"
 
             except sqlite3.OperationalError as error:
-                print("{}.  Please try use add sudo to retry.".format(error))
+                logging.error("{}.  Please try use add sudo to retry.".format(error))
                 is_need_terminate_app = True
                 #if "{}".format(error)=="[Errno 13] Permission denied":
             except Exception as error:
-                print("{}".format(error))
+                logging.error("{}".format(error))
                 raise
 
         else:
@@ -406,11 +400,11 @@ def generate_pincode():
             
             pass
     except sqlite3.OperationalError as error:
-        print("{}.  Please try use add sudo to retry.".format(error))
+        logging.error("{}.  Please try use add sudo to retry.".format(error))
         is_need_terminate_app = True
         #if "{}".format(error)=="[Errno 13] Permission denied":
     except Exception as error:
-        print("{}".format(error))
+        logging.error("{}".format(error))
         raise
 
     if is_need_terminate_app:
@@ -472,7 +466,6 @@ def read_config_file(path):
         try:
             exec_in(native_str(f.read()), config, config)
         except Exception as error:
-            #print("Error: {}".format(error))
             ret = False
             logging.error("Read config file Error: " + path)
             #raise Exception("Parse config file Error: {}".format(error))
