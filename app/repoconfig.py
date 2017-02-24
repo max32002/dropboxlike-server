@@ -289,7 +289,7 @@ def prepare_reg_json_body():
     computerName = socket.gethostname()
     localIp = socket.gethostbyname(socket.gethostname())
 
-    if localIp == "127.0.0.1":
+    if localIp[:4] == "127.":
         from sys import platform as _platform
         if _platform == "linux" or _platform == "linux2":
             from subprocess import check_output
