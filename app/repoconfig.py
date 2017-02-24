@@ -288,12 +288,16 @@ def prepare_reg_json_body():
     import socket
     computerName = socket.gethostname()
     localIp = socket.gethostbyname(socket.gethostname())
+    if not localIp is None:
+        localIp = localIp.strip()
 
     if localIp[:4] == "127.":
         from sys import platform as _platform
         if _platform == "linux" or _platform == "linux2":
             from subprocess import check_output
             localIp = check_output(["hostname", "-I"])
+            if not localIp is None:
+                localIp = localIp.strip()
 
     from uuid import getnode as get_mac
     mac = get_mac()
