@@ -71,10 +71,10 @@ class MaxDropboxLikeWeb(object):
 
                 if _platform == "linux" or _platform == "linux2":
                    # linux
-                   logging.error("Because of permission issue, you need run script by: sudo python start.py")
+                   logging.error("Because of permission issue, you need run script by: 'sudo ./start' or 'sudo python start.py'")
                 elif _platform == "darwin":
                    # MAC OS X
-                   logging.error("Because of permission issue, you need run script by: sudo python start.py")
+                   logging.error("Because of permission issue, you need run script by: 'sudo ./start' or 'sudo python start.py'")
                 elif _platform == "win32":
                    # Windows
                    logging.error("you need run script as administrator")

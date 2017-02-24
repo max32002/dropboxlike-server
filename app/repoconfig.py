@@ -474,7 +474,7 @@ def read_config_file(path):
         except Exception as error:
             #print("Error: {}".format(error))
             ret = False
-            print("Read config file Error: " + path)
+            logging.error("Read config file Error: " + path)
             #raise Exception("Parse config file Error: {}".format(error))
 
     return ret, config
@@ -503,10 +503,10 @@ def write_config_file(path, config):
                 text_file.write(new_body)
         except IOError:
             ret = False
-            print("Write config file Error: " + path)
+            logging.error("Write config file Error: " + path)
     else:
         ret = False
-        print 'Config file is empty!'
+        logging.error('Config file is empty!')
 
     return ret
 
@@ -525,6 +525,20 @@ def load_config_file():
             pass
 
         ret = write_config_file(CONFIG_FILENAME, config)
+        if not ret:
+            from sys import platform as _platform
+
+            if _platform == "linux" or _platform == "linux2":
+               # linux
+               logging.error("Because of permission issue, you need run script by: 'sudo ./start' or 'sudo python start.py'")
+            elif _platform == "darwin":
+               # MAC OS X
+               logging.error("Because of permission issue, you need run script by: 'sudo ./start' or 'sudo python start.py'")
+            elif _platform == "win32":
+               # Windows
+               logging.error("you need run script as administrator")
+            sys.exit()
+
 
     return ret
 
