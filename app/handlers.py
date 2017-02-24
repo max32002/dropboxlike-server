@@ -19,7 +19,7 @@ class BaseHandler(RequestHandler):
         path = self.request.path
         user = self.current_user
 
-        logging.info('user:%s is accessing %s', user, uri)
+        #logging.info('user:%s is accessing %s', user, uri)
 
         status_code = 0
         if status_code == 0:
