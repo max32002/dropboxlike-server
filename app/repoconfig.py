@@ -287,17 +287,7 @@ def display_pincode_to_user(pincode, minutes=None, serialnumber=None):
 def prepare_reg_json_body():
     import socket
     computerName = socket.gethostname()
-    localIp = socket.gethostbyname(socket.gethostname())
-    if not localIp is None:
-        localIp = localIp.strip()
-
-    if localIp[:4] == "127.":
-        from sys import platform as _platform
-        if _platform == "linux" or _platform == "linux2":
-            from subprocess import check_output
-            localIp = check_output(["hostname", "-I"])
-            if not localIp is None:
-                localIp = localIp.strip()
+    localIp = get_ip_address()
 
     from uuid import getnode as get_mac
     mac = get_mac()
@@ -306,6 +296,29 @@ def prepare_reg_json_body():
     data = {'title':computerName,'localIp':localIp, 'port':options.port, 'mac': mac_formated, 'client_version':options.versionCode}
     return data
 
+def get_ip_address():
+    import socket
+    ip = None
+    (hostname, aliaslist, ipaddrlist) = socket.gethostbyname_ex(socket.gethostname())
+
+    localIp = socket.gethostbyname(socket.gethostname())
+    if localIp[:4] == "127.":
+        ipaddrlist.remove(localIp)
+
+    if len(ipaddrlist) > 0:
+        ip = ipaddrlist[len(ipaddrlist)-1]
+
+    if len(ipaddrlist) > 1:
+        import netifaces as ni
+        interface_arr = ni.interfaces()
+        if 'vboxnet0' in interface_arr:
+            # {18: [{'addr': '0a:00:27:00:00:00'}], 2: [{'broadcast': '192.168.56.255', 'addr': '192.168.56.1'}]}
+            ip = ni.ifaddresses('vboxnet0')[2][0]['addr']
+            ipaddrlist.remove(ip)
+    #print "ipaddrlist", ipaddrlist
+    if len(ipaddrlist) > 0:
+        ip = ipaddrlist[len(ipaddrlist)-1]
+    return ip
 
 def generate_pincode():
     ret = False
