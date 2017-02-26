@@ -55,7 +55,7 @@ class MaxDropboxLikeWeb(object):
         claimed_status = "unclaimed"
         if self.app.claimed:
             claimed_status = "claimed"
-        logging.info('Runing %s dropboxlike at port %s, press Ctrl+C to stop.', claimed_status, options.port)
+        logging.info('Runing %s Dropboxlike Server v%s at port %s, press Ctrl+C to stop.', claimed_status, options.versionName, options.port)
         server = HTTPServer(self.app, xheaders=True, ssl_options = {
     "certfile": os.path.join(options.certificate_path, "server.crt"),
     "keyfile": os.path.join(options.certificate_path, "server.key"),

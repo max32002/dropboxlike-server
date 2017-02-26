@@ -32,12 +32,6 @@ def rand_string(desired_len):
              range(desired_len)]
     return ''.join(chars)
 
-def uuid_rand():
-    '''
-    prefer to rand_string
-    '''
-    return uuid4().hex
-
 def sha1_hash(value):
     sha1 = hashlib.sha1()
     sha1.update(value)
@@ -57,6 +51,35 @@ def md5_file(path):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
 
+def get_mac():
+    from uuid import getnode as get_mac
+    mac = get_mac()
+    mac_formated = ':'.join(("%012X" % mac)[i:i+2] for i in range(0, 12, 2))
+    return mac_formated
+
+def get_ip_address():
+    import socket
+    ip = None
+    (hostname, aliaslist, ipaddrlist) = socket.gethostbyname_ex(socket.gethostname())
+
+    localIp = socket.gethostbyname(socket.gethostname())
+    if localIp[:4] == "127.":
+        ipaddrlist.remove(localIp)
+
+    if len(ipaddrlist) > 0:
+        ip = ipaddrlist[len(ipaddrlist)-1]
+
+    if len(ipaddrlist) > 1:
+        import netifaces as ni
+        interface_arr = ni.interfaces()
+        if 'vboxnet0' in interface_arr:
+            # {18: [{'addr': '0a:00:27:00:00:00'}], 2: [{'broadcast': '192.168.56.255', 'addr': '192.168.56.1'}]}
+            ip = ni.ifaddresses('vboxnet0')[2][0]['addr']
+            ipaddrlist.remove(ip)
+    #print "ipaddrlist", ipaddrlist
+    if len(ipaddrlist) > 0:
+        ip = ipaddrlist[len(ipaddrlist)-1]
+    return ip
 
 def install_tornado_shutdown_handler(ioloop, server, logger=None):
     # see https://gist.github.com/mywaiting/4643396 for more detail
