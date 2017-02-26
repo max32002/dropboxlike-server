@@ -5,7 +5,6 @@ import logging
 import json
 from tornado.options import options
 from app.lib import libHttp
-from app.lib import utils
 from app.lib import misc
 from app.dbo.repo import DboRepo
 from app.dbo.pincode import DboPincode
@@ -303,13 +302,7 @@ class RepoClaimAuthHandler(BaseHandler):
     def prepare_confirm_json_body(self):
         import socket
         computerName = socket.gethostname()
-        localIp = socket.gethostbyname(socket.gethostname())
-
-        from uuid import getnode as get_mac
-        mac = get_mac()
-        mac_formated = ':'.join(("%012X" % mac)[i:i+2] for i in range(0, 12, 2))
-
-        node_number = 0
-
-        data = {'localIp':localIp, 'port':options.port, 'mac': mac_formated, 'client_version':options.versionCode}
+        localIp = misc.get_ip_address()
+        mac_formated = misc.get_mac()
+        data = {'title':computerName,'localIp':localIp, 'port':options.port, 'mac': mac_formated, 'client_version':options.versionCode}
         return data
