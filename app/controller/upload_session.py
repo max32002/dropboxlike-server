@@ -5,7 +5,6 @@ from app.handlers import BaseHandler
 import tornado.web
 import logging
 from app.lib import data_file
-from app.lib import misc
 from app.lib import utils
 from tornado.options import options
 import json
@@ -169,6 +168,9 @@ class UploadSessionHandler(BaseHandler):
                 if not is_pass_check:
                     errorCode = 1012
 
+        # start to output.
+        query_result = {"session_id": session_id}
+
         if self.action == "SessionFinish":
             if is_pass_check:
                 if os.path.exists(self.metadata_manager.real_path):
@@ -197,32 +199,20 @@ class UploadSessionHandler(BaseHandler):
 
             if is_pass_check:
                 # update metadata. (owner)
-                if os.path.exists(self.metadata_manager.real_path):
+                if os.path.isfile(self.metadata_manager.real_path):
                     is_pass_check, errorMessage = self._updateMtimeToFile(self.metadata_manager.real_path, client_modified)
                     if not is_pass_check:
                         errorCode = 1022
-
-                    size=os.stat(self.metadata_manager.real_path).st_size
-                    #print "size",size
-                    rev=None
-                    content_hash=misc.md5_file(self.metadata_manager.real_path)
-                    #print "content_hash",content_hash
-
-                    check_metadata = self.metadata_manager.get_path()
-                    if check_metadata is None:
-                        is_pass_check, query_result, errorMessage = self.metadata_manager.add_metadata(size=size, content_hash=content_hash, client_modified=client_modified)
-                    else:
-                        is_pass_check, query_result, errorMessage = self.metadata_manager.move_metadata(self.metadata_manager.poolid, self.metadata_manager.db_path, size=size, content_hash=content_hash, client_modified=client_modified)
-
-        # start to output.
-        query_result = {"session_id": session_id}
-        if self.action == "SessionFinish":
-            if is_pass_check:
-                query_result = self.metadata_manager.get_path()
-                if query_result is None:
-                    errorMessage = "add metadata in database fail"
+                else:
+                    errorMessage = "save file to server fail"
                     errorCode = 1023
-                    is_pass_check = False
+
+            query_result = None
+            if is_pass_check:
+                is_pass_check, query_result, errorMessage = self.metadata_manager.add_metadata_from_file()
+                if not is_pass_check:
+                    errorMessage = "add metadata in database fail"
+                    errorCode = 1024
 
         if is_pass_check:
             if not query_result is None:

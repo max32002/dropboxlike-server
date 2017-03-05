@@ -22,8 +22,13 @@ class MetaManager():
     path = None
     real_path = None
     db_path = None
+    sys_sql_client = None
 
     def __init__(self, sql_client, current_user, path):
+        self.sys_sql_client = sql_client
+        self.init_with_path(current_user, path)
+
+    def init_with_path(self, current_user, path):
         self.path = path
         self.account = current_user['account']
         self.poolid = current_user['poolid']
@@ -34,7 +39,7 @@ class MetaManager():
 
         if len(path) > 1:
             # query share_folder
-            pool_subscriber_dbo = DboPoolSubscriber(sql_client)
+            pool_subscriber_dbo = DboPoolSubscriber(self.sys_sql_client)
             pool_dict = pool_subscriber_dbo.find_share_poolid(self.account, path)
             if not pool_dict is None:
                 self.poolid = pool_dict['poolid']
@@ -295,3 +300,45 @@ class MetaManager():
         if poolid is None:
             poolid = self.poolid
         return self.dbo_metadata.get_space_usage(poolid)
+
+
+    def _getMtimeFromFile(self, real_path):
+        client_modified = 0
+        if os.path.isfile(real_path):
+            try:
+                client_modified = os.path.getmtime(real_path)
+            except OSError:
+                client_modified = 0
+        return client_modified
+
+    def add_metadata_from_file(self):
+        # only user misc at here.
+        from app.lib import misc
+
+        is_pass_check = False
+        query_result = None
+        errorMessage = ""
+
+        real_path = self.real_path
+        if os.path.isfile(real_path):
+            client_modified = self._getMtimeFromFile(real_path)
+            size=os.stat(real_path).st_size
+            #print "size",size
+            rev=None
+            content_hash=misc.md5_file(real_path)
+            #print "content_hash",content_hash
+
+            check_metadata = self.get_path()
+            if check_metadata is None:
+                is_pass_check, query_result, errorMessage = self.add_metadata(size=size, content_hash=content_hash, client_modified=client_modified)
+            else:
+                if size != check_metadata['size'] or content_hash != check_metadata['content_hash']:
+                    is_pass_check, query_result, errorMessage = self.move_metadata(self.poolid, self.db_path, size=size, content_hash=content_hash, client_modified=client_modified)
+                else:
+                    # the same, skip update
+                    pass
+        else:
+            errorMessage = "file not exist on server"
+
+        return is_pass_check, query_result, errorMessage
+
