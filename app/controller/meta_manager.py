@@ -12,7 +12,6 @@ import sqlite3
 import os
 
 class MetaManager():
-    '''!Metadata API Controller'''
     dbo_metadata = None
     account = None
     poolstorage = None
@@ -24,12 +23,13 @@ class MetaManager():
     db_path = None
     sys_sql_client = None
 
-    def __init__(self, sql_client, current_user, path):
+    def __init__(self, sql_client, current_user, query_path, check_shared_pool=True):
         self.sys_sql_client = sql_client
-        self.init_with_path(current_user, path)
+        self.init_with_path(current_user, query_path, check_shared_pool)
 
-    def init_with_path(self, current_user, path):
-        self.path = path
+    # get poolid by query_path
+    # PS: set check_shared_pool=False to input db_path
+    def init_with_path(self, current_user, query_path, check_shared_pool=True):
         self.account = current_user['account']
         self.poolid = current_user['poolid']
         if not self.poolid is None:
@@ -37,31 +37,40 @@ class MetaManager():
             self.poolname = ""
             self.can_edit = True
 
-        if len(path) > 1:
-            # query share_folder
-            pool_subscriber_dbo = DboPoolSubscriber(self.sys_sql_client)
-            pool_dict = pool_subscriber_dbo.find_share_poolid(self.account, path)
-            if not pool_dict is None:
-                self.poolid = pool_dict['poolid']
-                self.poolname = pool_dict['poolname']
-                # share folder under repo co-owner.
-                self.can_edit = False
-                if pool_dict['can_edit'] == 1:
-                    self.can_edit = True
+        if check_shared_pool:
+            if len(query_path) > 1:
+                # query share_folder
+                pool_subscriber_dbo = DboPoolSubscriber(self.sys_sql_client)
+                pool_dict = pool_subscriber_dbo.find_share_poolid(self.account, query_path)
+                if not pool_dict is None:
+                    self.poolid = pool_dict['poolid']
+                    self.poolname = pool_dict['poolname']
+                    # share folder under repo co-owner.
+                    self.can_edit = False
+                    if pool_dict['can_edit'] == 1:
+                        self.can_edit = True
+
+            # convert query_path to db_path
+            self.db_path = query_path
+            if len(query_path) > 0:
+                self.db_path = query_path[len(self.poolname):]
+        else:
+            # convert query_path to db_path
+            self.db_path = query_path
 
         if not self.poolid is None:
-            self.poolstorage = '%s/storagepool/%s' % (options.storage_access_point,self.poolid)
+            self.poolstorage = u'%s/storagepool/%s' % (options.storage_access_point, self.poolid)
             #logging.info('options.storage_access_point %s' % (options.storage_access_point))
             #logging.info('poolstorage %s' % (self.poolstorage))
             if self.dbo_metadata  is None:
                 metadata_conn = self.open_metadata_db(self.poolid)
                 self.dbo_metadata = DboMetadata(metadata_conn)
 
-            self.db_path = path
-            if len(path) > 0:
-                self.db_path = path[len(self.poolname):]
-            self.real_path = os.path.join(self.poolstorage, self.db_path[1:])
-            #logging.info('user query metadata path:%s, at real path: %s' % (path, self.real_path))
+            db_path_for_join = self.db_path[1:]
+            #print "db_path_for_join", db_path_for_join
+            #self.real_path = os.path.join(self.poolstorage, db_path_for_join.decode('utf-8'))
+            self.real_path = os.path.join(self.poolstorage, db_path_for_join)
+            #logging.info(u'user query metadata path:%s, at real path: %s' % (path, self.real_path))
 
     # open database.
     #[TODO] multi-database solution.
@@ -76,7 +85,7 @@ class MetaManager():
         client = sqlite3.connect(db_path)
         return client
 
-
+    # get current path metadata.
     def get_path(self, poolid=None, path=None):
         if poolid is None:
             poolid = self.poolid
@@ -88,6 +97,7 @@ class MetaManager():
             current_metadata = self.convert_for_dropboxlike_dict(current_metadata)
         return current_metadata
 
+    # get current folder metadata
     def list_folder(self, poolid=None, path=None):
         if poolid is None:
             poolid = self.poolid
@@ -240,12 +250,10 @@ class MetaManager():
 
         return ret, current_metadata, errorMessage
 
-
     def delete_metadata(self, current_metadata=None):
         # [TODO]: 
         #   crose pool delete.
         # 
-
         ret = False
 
         if current_metadata is None:
@@ -320,6 +328,7 @@ class MetaManager():
         errorMessage = ""
 
         real_path = self.real_path
+        #print "real_path:", real_path
         if os.path.isfile(real_path):
             client_modified = self._getMtimeFromFile(real_path)
             size=os.stat(real_path).st_size
@@ -330,6 +339,7 @@ class MetaManager():
 
             check_metadata = self.get_path()
             if check_metadata is None:
+                print "start to add file to metadata database:", real_path
                 is_pass_check, query_result, errorMessage = self.add_metadata(size=size, content_hash=content_hash, client_modified=client_modified)
             else:
                 if size != check_metadata['size'] or content_hash != check_metadata['content_hash']:

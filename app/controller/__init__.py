@@ -25,3 +25,7 @@ from app.controller.account_info import AccountSecurityQuestionHandler
 from app.controller.websocket import WebSocketHandler
 from app.controller.version import VersionHandler
 
+
+from app.controller.repo_share import RepoShareCreateHandler
+from app.controller.repo_share import RepoShareAuthHandler
+

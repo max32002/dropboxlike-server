@@ -16,6 +16,7 @@ from app.dbo.schema_version import DboSchemaVersion
 
 #import settings
 import app.repoconfig
+import app.file_manager
 
 from handlers import MyErrorHandler
 
@@ -41,6 +42,10 @@ class MaxDropboxLikeWeb(object):
         self.app = Application(routes, **the_settings)
         self.app.sql_client = self.setup_db()
         self.app.claimed = the_settings['claimed']
+        if self.app.claimed:
+            app.file_manager.travel(self.app.sql_client)
+            
+
 
     def setup_db(self):
         #logging.info("connecting to database %s ...", options.sys_db)

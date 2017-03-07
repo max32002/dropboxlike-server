@@ -193,6 +193,8 @@ class BaseTable():
             where = " ORDER BY " + order_by
         if not limit is None:
             limit = " LIMIT %d" % limit
+        else:
+            limit = ""
         sql = 'SELECT %s FROM %s%s%s'  % (sql_return_fields, self.sql_table_name, where, limit)
         #print sql
         cursor = self.conn.execute(sql, )

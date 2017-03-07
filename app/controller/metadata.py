@@ -57,7 +57,6 @@ class MetadataHandler(BaseHandler):
                     errorCode = 1011
                     is_pass_check = False
 
-
         if is_pass_check:
             self.metadata_manager = MetaManager(self.application.sql_client, self.current_user, path)
 

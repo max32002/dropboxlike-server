@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+#encoding=utf-8
+
 from tornado.options import options
 import logging
 from app.dbo.thumbnail import DboThumbnail

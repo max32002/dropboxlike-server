@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#fileencoding=utf-8
+#encoding=utf-8
 
 from app.handlers import BaseHandler
 import tornado.web
@@ -49,7 +49,7 @@ class UploadHandler(BaseHandler):
         mute = None
         if is_pass_check:
             is_pass_check = False
-            #logging.info('%s' % (str(_body)))
+            logging.info('%s' % (str(_body)))
             if _body:
                 try :
                     if 'path' in _body:
@@ -83,7 +83,7 @@ class UploadHandler(BaseHandler):
             self.metadata_manager = MetaManager(self.application.sql_client, self.current_user, path)
 
         if is_pass_check:
-            logging.info('Upload to real path at:%s' % (self.metadata_manager.real_path))
+            logging.info(u'Upload to real path at:%s' % (self.metadata_manager.real_path))
             is_pass_check = self._saveFile(self.metadata_manager.real_path, self.request.body)
 
             # update metadata. (owner)

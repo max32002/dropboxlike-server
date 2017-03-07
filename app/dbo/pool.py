@@ -1,7 +1,7 @@
 ﻿#!/usr/bin/env python
 #encoding=utf-8
-from app.dbo.basetable import BaseTable
-from app.dbo import dbconst
+from basetable import BaseTable
+import dbconst
 import logging
 
 #data object for pool
@@ -93,8 +93,6 @@ CREATE TABLE IF NOT EXISTS `pool_subscriber` (
             #logging.error("sql: %s", "{}".format(sql))
             #raise
         return result
-
-
 
     # return:
     #   (is_cross_owner_pool, poolid)

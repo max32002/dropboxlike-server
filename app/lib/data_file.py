@@ -11,14 +11,15 @@ _builtin_open = open
 def ensure_dir_exist(path):
     if not os.path.exists(path):
         os.makedirs(path)
-\
+
 def save(abspath, content):
     ret = False
     message = ""
     dirname = os.path.dirname(abspath)
     ensure_dir_exist(dirname)
 
-    tmp_abspath = '{}.tmp.{}'.format(abspath, os.getpid())
+    tmp_abspath = u'{}.tmp.{}'.format(abspath, os.getpid())
+    #print "tmp_abspath", tmp_abspath
     try:
         # [TODO] handle special case: exist file locked.
 
@@ -32,7 +33,7 @@ def save(abspath, content):
 
         ret = True
     except Exception as error:
-        errorMessage = "{}".format(error)
+        errorMessage = u"{}".format(error)
         logging.error(errorMessage)
         message = errorMessage
 

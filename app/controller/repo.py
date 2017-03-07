@@ -26,11 +26,9 @@ class RepoClaimAuthHandler(BaseHandler):
         errorCode = 0
 
         #logging.info('body:%s' % (self.request.body))
-        is_pass_check = False
+        is_pass_check = True
         
-        if not repo_dbo is None:
-            is_pass_check = True
-        else:
+        if repo_dbo is None:
             errorMessage = "database return null"
             errorCode = 1001
             is_pass_check = False
@@ -245,7 +243,7 @@ class RepoClaimAuthHandler(BaseHandler):
 
         if is_pass_check:
             if poolid > 0:
-                user_home = '%s/storagepool/%s' % (options.storage_access_point, poolid)
+                user_home = u'%s/storagepool/%s' % (options.storage_access_point, poolid)
                 self._mkdir_recursive(user_home)
 
                 from app.controller.meta_manager import MetaManager
@@ -254,7 +252,7 @@ class RepoClaimAuthHandler(BaseHandler):
                 is_pass_check, query_result, errorMessage = metadata_manager.add_metadata(is_dir=1)
                 #print "query_result", query_result
                 if not is_pass_check:
-                    #errorMessage = "add metadata in database fail"
+                    errorMessage = "add metadata in database fail"
                     errorCode = 1040
 
                 # set server claimed.
