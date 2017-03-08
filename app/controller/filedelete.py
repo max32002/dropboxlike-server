@@ -57,13 +57,18 @@ class FileDeleteHandler(BaseHandler):
         if is_pass_check:
             self.metadata_manager = MetaManager(self.application.sql_client, self.current_user, path)
 
-            if not os.path.exists(self.metadata_manager.real_path):
-                # ignore
-                pass
-                # path exist
-                #errorMessage = "path is not exist"
-                #errorCode = 1020
-                #is_pass_check = False
+            if not self.metadata_manager.real_path is None:
+                if not os.path.exists(self.metadata_manager.real_path):
+                    # ignore
+                    pass
+                    # path exist
+                    #errorMessage = "path is not exist"
+                    #errorCode = 1020
+                    #is_pass_check = False
+            else:
+                errorMessage = "no permission"
+                errorCode = 1030
+                is_pass_check = False
 
         if is_pass_check:
             if not self.metadata_manager.can_edit:
@@ -88,7 +93,7 @@ class FileDeleteHandler(BaseHandler):
             is_pass_check = self.metadata_manager.delete_metadata(current_metadata=current_metadata)
             if not is_pass_check:
                 errorMessage = "delete metadata fail"
-                errorCode = 1030
+                errorCode = 1040
                 is_pass_check = False
 
 

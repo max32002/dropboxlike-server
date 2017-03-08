@@ -108,13 +108,18 @@ class FileCopyMoveHandler(BaseHandler):
         if is_pass_check:
             self.to_metadata_manager = MetaManager(self.application.sql_client, self.current_user, to_path)
 
-            if os.path.exists(self.to_metadata_manager.real_path):
-                # [TODO]:
-                # apply autorenename rule.
-                #pass
-                # path exist
-                errorMessage = "to_path is not exist"
-                errorCode = 1021
+            if not self.metadata_manager.real_path is None:
+                if os.path.exists(self.to_metadata_manager.real_path):
+                    # [TODO]:
+                    # apply autorenename rule.
+                    #pass
+                    # path exist
+                    errorMessage = "to_path is not exist"
+                    errorCode = 1021
+                    is_pass_check = False
+            else:
+                errorMessage = "no permission"
+                errorCode = 1030
                 is_pass_check = False
 
         if is_pass_check:

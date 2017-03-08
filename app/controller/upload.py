@@ -83,18 +83,29 @@ class UploadHandler(BaseHandler):
             self.metadata_manager = MetaManager(self.application.sql_client, self.current_user, path)
 
         if is_pass_check:
+            if not self.metadata_manager.can_edit:
+                errorMessage = "no write premission"
+                errorCode = 1020
+                is_pass_check = False
+
+        if is_pass_check:
             logging.info(u'Upload to real path at:%s' % (self.metadata_manager.real_path))
             is_pass_check = self._saveFile(self.metadata_manager.real_path, self.request.body)
 
             # update metadata. (owner)
-            if os.path.isfile(self.metadata_manager.real_path):
-                if not client_modified is None:
-                    is_pass_check, errorMessage = self._updateMtimeToFile(self.metadata_manager.real_path, client_modified)
-                    if not is_pass_check:
-                        errorCode = 1022
+            if not self.metadata_manager.real_path is None:
+                if os.path.isfile(self.metadata_manager.real_path):
+                    if not client_modified is None:
+                        is_pass_check, errorMessage = self._updateMtimeToFile(self.metadata_manager.real_path, client_modified)
+                        if not is_pass_check:
+                            errorCode = 1022
+                else:
+                    errorMessage = "save file to server fail"
+                    errorCode = 1023
             else:
-                errorMessage = "save file to server fail"
-                errorCode = 1023
+                errorMessage = "no permission"
+                errorCode = 1030
+                is_pass_check = False
 
         query_result = None
         if is_pass_check:

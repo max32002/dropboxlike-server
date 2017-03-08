@@ -280,7 +280,7 @@ class RepoShareAuthHandler(BaseHandler):
             is_pass_check=repo_sharing_dbo.pk_delete(share_code)
             if not is_pass_check:
                 errorMessage = "Remove share_code fail"
-                errorCode = 1040
+                errorCode = 1041
 
             
         if is_pass_check:
@@ -296,7 +296,7 @@ class RepoShareAuthHandler(BaseHandler):
         errorMessage = ""
         errorCode = 0
 
-        is_root = 0
+        is_root = 1
         pool_dbo = DboPool(self.application.sql_client)
 
         # TOOD: here should begin trans. and able to rollback.

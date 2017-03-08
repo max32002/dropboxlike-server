@@ -422,3 +422,12 @@ CREATE TABLE IF NOT EXISTS `metadata` (
             if 'usage' in row:
                 ret = row['usage']
         return ret 
+
+    # get pool metadata..
+    def list_pool( self, poolid):
+        out_dic = None
+        sql = 'SELECT '+ self.sql_return_fields +' FROM '+ self.sql_table_name +' WHERE poolid=? and is_dir=0'
+        cursor = self.conn.execute(sql, (poolid,))
+        if not cursor is None:
+            out_dic = self.get_dict_by_cursor(cursor)
+        return out_dic 

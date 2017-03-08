@@ -60,12 +60,13 @@ class MetadataHandler(BaseHandler):
         if is_pass_check:
             self.metadata_manager = MetaManager(self.application.sql_client, self.current_user, path)
 
-            if not os.path.exists(self.metadata_manager.real_path):
-                pass
-                #[TODO]: rebuild path on server side from database?
-                #errorMessage = "path on server not found"
-                #errorCode = 1020
-                #is_pass_check = False
+            if not self.metadata_manager.real_path is None:
+                if not os.path.exists(self.metadata_manager.real_path):
+                    pass
+                    #[TODO]: rebuild path on server side from database?
+                    #errorMessage = "path on server not found"
+                    #errorCode = 1020
+                    #is_pass_check = False
 
         query_result = None
         if is_pass_check:
@@ -73,9 +74,12 @@ class MetadataHandler(BaseHandler):
             if self.mode == "FILE":
                 query_result = self.metadata_manager.get_path()
             else:
+                folder_id = 0
                 current_metadata = self.metadata_manager.get_path()
                 if not current_metadata is None:
-                    self.set_header("oid",current_metadata["id"])
+                    folder_id = current_metadata["id"]
+                self.set_header("oid", folder_id)
+
                 query_result = self.metadata_manager.list_folder()
 
             if query_result is None:

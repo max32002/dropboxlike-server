@@ -32,6 +32,9 @@ class MetaManager():
     def init_with_path(self, current_user, query_path, check_shared_pool=True):
         self.account = current_user['account']
         self.poolid = current_user['poolid']
+
+        self.poolname = None
+        self.can_edit = False
         if not self.poolid is None:
             # default access user-home.
             self.poolname = ""
@@ -51,18 +54,22 @@ class MetaManager():
                         self.can_edit = True
 
             # convert query_path to db_path
-            self.db_path = query_path
-            if len(query_path) > 0:
-                self.db_path = query_path[len(self.poolname):]
+            if not self.poolid is None and not self.poolname is None:
+                self.db_path = query_path
+                if len(query_path) > 0:
+                    self.db_path = query_path[len(self.poolname):]
         else:
             # convert query_path to db_path
             self.db_path = query_path
 
+        self.poolstorage = None
+        self.real_path = None
         if not self.poolid is None:
             self.poolstorage = u'%s/storagepool/%s' % (options.storage_access_point, self.poolid)
             #logging.info('options.storage_access_point %s' % (options.storage_access_point))
             #logging.info('poolstorage %s' % (self.poolstorage))
-            if self.dbo_metadata  is None:
+            if self.dbo_metadata is None:
+                #print "open metadata at pool: %d" % (self.poolid,)
                 metadata_conn = self.open_metadata_db(self.poolid)
                 self.dbo_metadata = DboMetadata(metadata_conn)
 
@@ -92,7 +99,10 @@ class MetaManager():
         if path is None:
             path = self.db_path
 
-        current_metadata = self.dbo_metadata.get_metadata(poolid, path)
+        current_metadata = None
+        if not poolid is None:
+            if not self.dbo_metadata is None:
+                current_metadata = self.dbo_metadata.get_metadata(poolid, path)
         if not current_metadata is None:
             current_metadata = self.convert_for_dropboxlike_dict(current_metadata)
         return current_metadata
@@ -104,13 +114,19 @@ class MetaManager():
         if path is None:
             path = self.db_path
 
+        dic_children = None
+        if not poolid is None:
+            if not self.dbo_metadata is None:
+                dic_children = self.dbo_metadata.list_folder(poolid, path)
+
         metadata_dic = {}
-        dic_children = self.dbo_metadata.list_folder(poolid, path)
         contents = []
 
         # for small case used.
-        for item in dic_children:
-            contents.append(self.convert_for_dropboxlike_dict(item))
+        if not dic_children is None:
+            for item in dic_children:
+                contents.append(self.convert_for_dropboxlike_dict(item))
+
         metadata_dic['entries']=contents
         
         metadata_dic['cursor']=utils.get_timestamp()

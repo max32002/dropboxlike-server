@@ -173,46 +173,58 @@ class UploadSessionHandler(BaseHandler):
 
         if self.action == "SessionFinish":
             if is_pass_check:
-                if os.path.exists(self.metadata_manager.real_path):
-                    # [TODO]: to Overwrite(with new revision) or autorename
+                if not self.metadata_manager.can_edit:
+                    errorMessage = "no write premission"
+                    errorCode = 1020
+                    is_pass_check = False
 
-                    # need implement a revision feature.
-                    # need move target to versions folder.
-                    try:
-                        os.unlink(self.metadata_manager.real_path)
-                    except Exception as error:
-                        errorMessage = "{}".format(error)
-                        logging.error(errorMessage)
-                        pass
+            if is_pass_check:
+                if not self.metadata_manager.real_path is None:
+                    if os.path.exists(self.metadata_manager.real_path):
+                        # [TODO]: to Overwrite(with new revision) or autorename
+
+                        # need implement a revision feature.
+                        # need move target to versions folder.
+                        try:
+                            os.unlink(self.metadata_manager.real_path)
+                        except Exception as error:
+                            errorMessage = "{}".format(error)
+                            logging.error(errorMessage)
+                            pass
+                    else:
+                        # MUST make sure folder exist, else move will fail.
+                        head, tail = os.path.split(self.metadata_manager.real_path)
+                        self._createFolder(head)
+
+                    import shutil
+                    shutil.move(session_real_path, self.metadata_manager.real_path)
                 else:
-                    # MUST make sure folder exist, else move will fail.
-                    head, tail = os.path.split(self.metadata_manager.real_path)
-                    self._createFolder(head)
+                    errorMessage = "no permission"
+                    errorCode = 1030
+                    is_pass_check = False
 
-                import shutil
-                shutil.move(session_real_path, self.metadata_manager.real_path)
 
                 is_pass_check = self.dbo_chunk_upload.pk_delete(session_id)
                 if not is_pass_check:
                     errorMessage = "remove upload session info fail."
-                    errorCode = 1020
+                    errorCode = 1040
 
             if is_pass_check:
                 # update metadata. (owner)
                 if os.path.isfile(self.metadata_manager.real_path):
                     is_pass_check, errorMessage = self._updateMtimeToFile(self.metadata_manager.real_path, client_modified)
                     if not is_pass_check:
-                        errorCode = 1022
+                        errorCode = 1042
                 else:
                     errorMessage = "save file to server fail"
-                    errorCode = 1023
+                    errorCode = 1043
 
             query_result = None
             if is_pass_check:
                 is_pass_check, query_result, errorMessage = self.metadata_manager.add_metadata_from_file()
                 if not is_pass_check:
                     errorMessage = "add metadata in database fail"
-                    errorCode = 1024
+                    errorCode = 1044
 
         if is_pass_check:
             if not query_result is None:
