@@ -16,8 +16,8 @@ def define_app_options():
     define('log_level', default=logging.INFO)
     define('log_backup_path', default=tempfile.gettempdir())
     
-    define('versionCode', 2)
-    define('versionName', "1.1")
+    define('versionCode', 3)
+    define('versionName', "1.2")
 
     default_port = 443
     define('port', default_port)
