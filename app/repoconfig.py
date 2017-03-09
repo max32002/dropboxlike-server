@@ -55,7 +55,7 @@ def repo_register(repo_dbo, pincode_dbo):
             # for short-pincode & changeable & GUI support sultion.
             #repo_query(repo_dbo, pincode_dbo, pincode, sn, pooling_flag=True)
         else:
-            print "unknow error, return json empty!"
+            #print "unknow error(%d), return:%s" % (http_code, json_obj)
             pass
     else:
         #print "server is not able be connected or cancel by user"
@@ -144,7 +144,7 @@ def repo_update(repo_token):
                 """
                 pass
         else:
-            print "unknow error, return json empty!"
+            #print "unknow error(%d), return:%s" % (http_code, json_obj)
             pass
     else:
         #print "server is not able be connected or cancel by user"
@@ -196,7 +196,7 @@ def repo_query(pincode, sn, pooling_flag=False):
                 """
                 pass
         else:
-            print "unknow error, return json empty!"
+            #print "unknow error(%d), return:%s" % (http_code, json_obj)
             pass
     else:
         #print "server is not able be connected or cancel by user"

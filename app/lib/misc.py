@@ -76,6 +76,17 @@ def get_ip_address():
             # {18: [{'addr': '0a:00:27:00:00:00'}], 2: [{'broadcast': '192.168.56.255', 'addr': '192.168.56.1'}]}
             ip = ni.ifaddresses('vboxnet0')[2][0]['addr']
             ipaddrlist.remove(ip)
+    
+    if len(ipaddrlist) == 0:
+        # very strange, gethostbyname_ex only get [127.0.0.1], but wireless card is working.
+        import netifaces as ni
+        interface_arr = ni.interfaces()
+        for item in interface_arr:
+            ip = ni.ifaddresses(item)[2][0]['addr']
+            if not ip is None:
+                if localIp[:4] != "127.":
+                    ipaddrlist.append(ip)
+
     #print "ipaddrlist", ipaddrlist
     if len(ipaddrlist) > 0:
         ip = ipaddrlist[len(ipaddrlist)-1]
