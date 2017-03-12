@@ -22,6 +22,9 @@ def define_app_options():
     default_port = 443
     define('port', default_port)
 
+    default_streaming_port = 80
+    define('streaming_port', default_streaming_port)
+
     database_schema_version = 1
     define('database_schema_version', database_schema_version)
 
@@ -41,20 +44,21 @@ def define_app_options():
     sys_db = os.path.join(options.storage_access_point, 'dropboxlike.db')
     define('sys_db', default=sys_db)
 
-    define('ignore_token_check_prefix', default=['/1/auth/','/server_info','/1/repo/auth_shared_repo'])
+    define('ignore_token_check_prefix', default=['/1/auth/','/server_info','/1/repo/auth_shared_repo','/download/'])
     define('claim_uri_prefix', default=['/1/repo/claim_auth'])
     define('api_hostname', 'api.dropboxlike.com')
     #define('api_hostname', '127.0.0.1')
 
     conf_filepath = os.path.join(app_root, 'server.conf')
     #print "config filepath: %s" % conf_filepath
-    #print "auth_db filepath: %s" % auth_db
     if os.path.isfile(conf_filepath):
         options.parse_config_file(conf_filepath)
 
-    # reload storage_access_point from config.
     if options.port is None:
         define('port', default_port)
+
+    if options.streaming_port is None:
+        define('streaming_port', default_streaming_port)
 
     if not options.storage_access_point is None:
         if len(options.storage_access_point) < 1:

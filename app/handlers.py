@@ -127,7 +127,6 @@ class BaseHandler(RequestHandler):
                     errorMessage = "path: '%s' did not match pattern." % (path)
                     ret = False
 
-
         return ret, errorMessage
 
     @property

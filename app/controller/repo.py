@@ -302,5 +302,5 @@ class RepoClaimAuthHandler(BaseHandler):
         computerName = socket.gethostname()
         localIp = misc.get_ip_address()
         mac_formated = misc.get_mac()
-        data = {'title':computerName,'localIp':localIp, 'port':options.port, 'mac': mac_formated, 'client_version':options.versionCode}
+        data = {'title':computerName,'localIp':localIp, 'port':options.port, 'streaming_port':options.streaming_port, 'mac': mac_formated, 'client_version':options.versionCode}
         return data
