@@ -179,13 +179,7 @@ CREATE TABLE IF NOT EXISTS `metadata` (
             else:
                 poolid = in_dic['poolid']
 
-        path = ''
-        if ret:
-            if in_dic.get('path', '') == '':
-                errorMessage = 'path value cannot be empty.'
-                ret = False
-            else:
-                path = in_dic['path']
+        path = in_dic.get('path', '')
 
         old_poolid = ''
         if ret:
@@ -195,18 +189,13 @@ CREATE TABLE IF NOT EXISTS `metadata` (
             else:
                 old_poolid = in_dic['old_poolid']
 
-        old_path = ''
-        if ret:
-            if in_dic.get('old_path', '') == '':
-                errorMessage = 'old_path value cannot be empty.'
-                ret = False
-            else:
-                old_path = in_dic['old_path']
+        old_path = in_dic.get('old_path', '')
 
         if ret:
             if in_dic.get('editor', '') == '':
                 errorMessage = 'editor value cannot be empty.'
                 ret = False
+        #print "in_dic", in_dic
 
         if ret:
             # skip parent's commit.
@@ -247,8 +236,9 @@ CREATE TABLE IF NOT EXISTS `metadata` (
                 # question: is need to update the editor/owner account?
                 if not(old_poolid==poolid and old_path==path):
                     # skip for file revision.
-                    sql = 'update metadata set path = ? || substr(path, length(?)+1) , parent = ? || substr(parent, length(?)+1), editor=? where poolid=? and path like ? '
-                    self.conn.execute(sql, (path, old_path, path, old_path, in_dic['editor'], old_poolid, old_path+'/%',))
+                    sql = 'update metadata set  poolid=?, path = ? || substr(path, length(?)+1) , parent = ? || substr(parent, length(?)+1), editor=? where poolid=? and path like ? '
+                    #logging.info('update subfolder sql:%s' % (sql))
+                    self.conn.execute(sql, (poolid, path, old_path, path, old_path, in_dic['editor'], old_poolid, old_path+'/%',))
                 #self.conn.commit()
 
                 current_metadata = self.get_metadata(poolid, path)

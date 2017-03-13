@@ -10,24 +10,26 @@ from app.dbo.repo import DboRepo
 from app.dbo import dbconst
 from app.dbo.pool import DboPool
 from app.dbo.pool import DboPoolSubscriber
-from app.dbo.repo_sharing import DboRepoSharing
+from app.dbo.folder_sharing import DboFolderSharing
+from app.controller.meta_manager import MetaManager
 import os
 
-class RepoShareCreateHandler(BaseHandler):
+class FolderShareCreateHandler(BaseHandler):
     def post(self):
         self.set_header('Content-Type','application/json')
-        repo_sharing_dbo = DboRepoSharing(self.application.sql_client)
+        folder_sharing_dbo = DboFolderSharing(self.application.sql_client)
         auth_dbo = self.db_account
 
         errorMessage = ""
         errorCode = 0
         is_pass_check = True
 
-        if repo_sharing_dbo is None:
+        if folder_sharing_dbo is None:
             errorMessage = "database return null"
             errorCode = 1001
             is_pass_check = False
 
+        #logging.info("body:"+self.request.body)
         _body = None
         if is_pass_check:
             is_pass_check = False
@@ -41,12 +43,19 @@ class RepoShareCreateHandler(BaseHandler):
                 pass
 
         password = None
+        path = None
+        can_edit = 0
         if is_pass_check:
             is_pass_check = False
             if _body:
                 try :
                     if 'password' in _body:
                         password = _body['password']
+                    if 'path' in _body:
+                        path = _body['path']
+                    if 'can_edit' in _body:
+                        if _body['can_edit']:
+                            can_edit=1
                     is_pass_check = True
                 except Exception:
                     errorMessage = "parse json fail"
@@ -62,9 +71,49 @@ class RepoShareCreateHandler(BaseHandler):
                     errorCode = 1005
 
         if is_pass_check:
-            if not auth_dbo.is_owner(self.current_user['account']):
-                errorMessage = "Only server owner has permission to share repo"
+            ret, errorMessage = self.check_path(path)
+            if not ret:
+                is_pass_check = False
                 errorCode = 1010
+
+        if is_pass_check:
+            if path=="/":
+                path = ""
+
+            if len(path)==0:
+                errorMessage = "path is empty"
+                errorCode = 1013
+                is_pass_check = False
+
+        if is_pass_check:
+            if self.current_user['poolid'] is None:
+                errorMessage = "no share permission"
+                errorCode = 1015
+                is_pass_check = False
+                    
+        old_real_path = None
+        old_poolid = None
+        if is_pass_check:
+            self.metadata_manager = MetaManager(self.application.sql_client, self.current_user, path)
+
+            old_real_path = self.metadata_manager.real_path
+            old_poolid = self.metadata_manager.poolid
+            if not old_real_path is None:
+                if not os.path.exists(old_real_path):
+                    # path not exist
+                    errorMessage = "real path is not exist"
+                    errorCode = 1020
+                    is_pass_check = False
+            else:
+                errorMessage = "no permission"
+                errorCode = 1030
+                is_pass_check = False
+
+        if is_pass_check:
+            if self.current_user['poolid'] != old_poolid:
+                errorMessage = "unable to share folder under share folder"
+                errorCode = 1031
+                is_pass_check = False
 
         ret_dict = {}
         ret_dict['password']=password
@@ -72,14 +121,34 @@ class RepoShareCreateHandler(BaseHandler):
             # start check on public server.
             is_pass_check = False
 
-            http_code,json_obj = self.call_repo_sharing_reg_api()
+            http_code,json_obj = self.call_folder_sharing_reg_api()
             if http_code > 0:
                 if http_code == 200 and not json_obj is None:
                     #print "json:", json_obj
                     share_code = json_obj.get('share_code','')
                     share_code = share_code.lower()
                     if len(share_code) > 0:
-                        is_pass_check = repo_sharing_dbo.add(share_code, password)
+                        user_account = self.current_user['account']
+                        is_pass_check, new_poolid, errorMessage, errorCode = self.create_shared_folder_pool(user_account, path)
+                        if not is_pass_check:
+                            errorMessage = "create new pool to database fail"
+                            errorCode = 1042
+
+                        if is_pass_check:
+                            old_poolid = self.current_user['poolid']
+                            self.metadata_manager = MetaManager(self.application.sql_client, self.current_user, path)
+                            is_pass_check, current_metadata, errorMessage = self.metadata_manager.move_metadata(old_poolid, path)
+                            if is_pass_check:
+                                is_pass_check = folder_sharing_dbo.add(share_code, password, new_poolid, can_edit)
+                                if not is_pass_check:
+                                    errorMessage = "insert new folder sharing info to database fail"
+                                    errorCode = 1043
+                            if is_pass_check:
+                                # move direct
+                                is_pass_check = self.move_shared_folder_to_pool(new_poolid, old_real_path)
+                                if not is_pass_check:
+                                    errorMessage = "move folder to new path fail"
+                                    errorCode = 1044
                     else:
                         errorMessage = "share_code return empty"
                         errorCode = 1041
@@ -109,8 +178,51 @@ class RepoShareCreateHandler(BaseHandler):
             self.write(dict(error=dict(message=errorMessage,code=errorCode)))
             #logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
 
-    def call_repo_sharing_reg_api(self):
-        api_reg_pattern = "1/repo/share/reg"
+    def move_shared_folder_to_pool(self, poolid, old_real_path):
+        ret = False
+        if poolid > 0:
+            pool_home = '%s/storagepool/%s' % (options.storage_access_point, poolid)
+            if not os.path.exists(pool_home):
+                import shutil
+                shutil.move(old_real_path, pool_home)
+                ret = True
+            else:
+                # error
+                pass
+        return ret
+
+    def create_shared_folder_pool(self, user_account, localpoolname):
+        errorMessage = ""
+        errorCode = 0
+
+        is_root = 0
+        pool_dbo = DboPool(self.application.sql_client)
+
+        # TOOD: here should begin trans. and able to rollback.
+        is_pass_check, poolid = pool_dbo.add(user_account, is_root)
+        if is_pass_check:
+            if poolid > 0:
+                #localpoolname = path
+                can_edit = 1
+                status = dbconst.POOL_STATUS_SHARED
+
+                pool_subscriber_dbo = DboPoolSubscriber(self.application.sql_client)
+                is_pass_check = pool_subscriber_dbo.add(user_account, poolid, localpoolname, can_edit, status)
+                if not is_pass_check:
+                    errorMessage = "Add new pool_subscriber fail"
+                    errorCode = 1032
+            else:
+                is_pass_check = False
+                errorMessage = "poolid is wrong"
+                errorCode = 1031
+        else:
+            errorMessage = "Add new pool fail"
+            errorCode = 1030
+
+        return is_pass_check, poolid, errorMessage, errorCode
+
+    def call_folder_sharing_reg_api(self):
+        api_reg_pattern = "1/repo/share/reg_folder"
         api_url = "https://%s/%s" % (options.api_hostname,api_reg_pattern)
 
         confirm_dict = {}
@@ -137,11 +249,11 @@ class RepoShareCreateHandler(BaseHandler):
             # error
         return http_code,json_obj
 
-class RepoShareAuthHandler(BaseHandler):
+class FolderShareAuthHandler(BaseHandler):
     def post(self):
         self.set_header('Content-Type','application/json')
         auth_dbo = self.db_account
-        repo_sharing_dbo = DboRepoSharing(self.application.sql_client)
+        folder_sharing_dbo = DboFolderSharing(self.application.sql_client)
 
         errorMessage = ""
         errorCode = 0
@@ -149,7 +261,7 @@ class RepoShareAuthHandler(BaseHandler):
         #logging.info('body:%s' % (self.request.body))
         is_pass_check = True
         
-        if repo_sharing_dbo is None:
+        if folder_sharing_dbo is None:
             errorMessage = "database return null"
             errorCode = 1001
             is_pass_check = False
@@ -213,7 +325,7 @@ class RepoShareAuthHandler(BaseHandler):
 
         sharing_dict = None
         if is_pass_check:
-            sharing_dict = repo_sharing_dbo.match(share_code, password)
+            sharing_dict = folder_sharing_dbo.match(share_code, password)
             if sharing_dict is None:
                 errorMessage = "Password not match"
                 errorCode = 1021
@@ -229,7 +341,7 @@ class RepoShareAuthHandler(BaseHandler):
             # start check on public server.
             is_pass_check = False
 
-            http_code,json_obj = self.call_repo_sharing_confirm_api(share_code, request_id)
+            http_code,json_obj = self.call_folder_sharing_confirm_api(share_code, request_id)
             if http_code > 0:
                 if http_code == 200 and not json_obj is None:
                     #print "json:", json_obj
@@ -276,8 +388,8 @@ class RepoShareAuthHandler(BaseHandler):
             is_pass_check, errorMessage, errorCode = self.create_shared_repo_pool(user_account)
 
         if is_pass_check:
-            # clean_repo_sharing
-            is_pass_check=repo_sharing_dbo.pk_delete(share_code)
+            # clean_folder_sharing
+            is_pass_check=folder_sharing_dbo.pk_delete(share_code)
             if not is_pass_check:
                 errorMessage = "Remove share_code fail"
                 errorCode = 1041
@@ -322,8 +434,8 @@ class RepoShareAuthHandler(BaseHandler):
 
         if is_pass_check:
             if poolid > 0:
-                pool_home = '%s/storagepool/%s' % (options.storage_access_point, poolid)
-                self._mkdir_recursive(pool_home)
+                user_home = '%s/storagepool/%s' % (options.storage_access_point, poolid)
+                self._mkdir_recursive(user_home)
 
                 from app.controller.meta_manager import MetaManager
                 user_dict = {'account':user_account,'poolid':poolid}
@@ -343,8 +455,8 @@ class RepoShareAuthHandler(BaseHandler):
         if not os.path.exists(path):
             os.mkdir(path)
 
-    def call_repo_sharing_confirm_api(self, share_code, request_id):
-        api_reg_pattern = "1/repo/share/confirm"
+    def call_folder_sharing_confirm_api(self, share_code, request_id):
+        api_reg_pattern = "1/repo/share/confirm_folder"
         api_url = "https://%s/%s" % (options.api_hostname,api_reg_pattern)
 
         confirm_dict = {}

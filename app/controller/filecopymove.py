@@ -96,19 +96,24 @@ class FileCopyMoveHandler(BaseHandler):
         if is_pass_check:
             self.from_metadata_manager = MetaManager(self.application.sql_client, self.current_user, from_path)
 
-            if not os.path.exists(self.from_metadata_manager.real_path):
-                # [TODO]:
-                # create real folders from database.
-                #pass
-                # path not exist
-                errorMessage = "from_path:%s is not exist" % (from_path,)
-                errorCode = 1020
+            if not self.from_metadata_manager.real_path is None:
+                if not os.path.exists(self.from_metadata_manager.real_path):
+                    # [TODO]:
+                    # create real folders from database.
+                    #pass
+                    # path not exist
+                    errorMessage = "from_path:%s is not exist" % (from_path,)
+                    errorCode = 1020
+                    is_pass_check = False
+            else:
+                errorMessage = "no permission"
+                errorCode = 1030
                 is_pass_check = False
-
+    
         if is_pass_check:
             self.to_metadata_manager = MetaManager(self.application.sql_client, self.current_user, to_path)
 
-            if not self.metadata_manager.real_path is None:
+            if not self.to_metadata_manager.real_path is None:
                 if os.path.exists(self.to_metadata_manager.real_path):
                     # [TODO]:
                     # apply autorenename rule.
@@ -185,8 +190,8 @@ class FileCopyMoveHandler(BaseHandler):
         if is_pass_check:
             # must everyday is done, thus to move files.
             #self._copymove(self.from_metadata_manager.real_path,self.to_metadata_manager.real_path,self.operation)
-            tornado.ioloop.IOLoop.instance().add_callback(self._copymove,self.from_metadata_manager.real_path,self.to_metadata_manager.real_path,self.operation)
-
+            if not current_metadata is None:
+                tornado.ioloop.IOLoop.instance().add_callback(self._copymove,self.from_metadata_manager.real_path,self.to_metadata_manager.real_path,self.operation,current_metadata)
 
         if is_pass_check:
             if not current_metadata is None:
@@ -205,13 +210,15 @@ class FileCopyMoveHandler(BaseHandler):
             except OSError as exc: 
                 pass
 
-    def _copymove(self, src, dst, operation):
+    def _copymove(self, src, dst, operation, current_metadata):
         if os.path.isfile(src):
             # file to file copy/move
             head, tail = os.path.split(dst)
             self._createFolder(head)
             if operation is self.OPERATION_COPY:
                 shutil.copy(src, dst)
+                # no matter file or folder should scan sub-folder.
+                tornado.ioloop.IOLoop.instance().add_callback(self.to_metadata_manager.add_thumbnail,current_metadata)
             elif operation is self.OPERATION_MOVE:
                 shutil.move(src, dst)
         else:
@@ -219,6 +226,8 @@ class FileCopyMoveHandler(BaseHandler):
             #logging.info("%s sub-folder from %s to %s.", operation, src, dst)
             if operation is self.OPERATION_COPY:
                 self.copyrecursively(src, dst)
+                # no matter file or folder should scan sub-folder.
+                tornado.ioloop.IOLoop.instance().add_callback(self.to_metadata_manager.add_thumbnail,current_metadata)
             elif operation is self.OPERATION_MOVE:
                 shutil.move(src, dst)
 

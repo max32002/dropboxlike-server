@@ -80,7 +80,7 @@ class MetadataHandler(BaseHandler):
                     folder_id = current_metadata["id"]
                 self.set_header("oid", folder_id)
 
-                query_result = self.metadata_manager.list_folder()
+                query_result = self.metadata_manager.list_folder(show_share_folder=True)
 
             if query_result is None:
                 errorMessage = "metadata not found"

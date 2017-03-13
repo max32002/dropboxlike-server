@@ -13,6 +13,7 @@ import os
 
 class MetaManager():
     dbo_metadata = None
+    dbo_pool_subscriber = None
     account = None
     poolstorage = None
     poolid = None
@@ -25,11 +26,14 @@ class MetaManager():
 
     def __init__(self, sql_client, current_user, query_path, check_shared_pool=True):
         self.sys_sql_client = sql_client
+        self.dbo_pool_subscriber = DboPoolSubscriber(self.sys_sql_client)
         self.init_with_path(current_user, query_path, check_shared_pool)
 
     # get poolid by query_path
     # PS: set check_shared_pool=False to input db_path
     def init_with_path(self, current_user, query_path, check_shared_pool=True):
+        ret = True
+
         self.account = current_user['account']
         self.poolid = current_user['poolid']
 
@@ -40,18 +44,20 @@ class MetaManager():
             self.poolname = ""
             self.can_edit = True
 
+
+        pool_dict = None
+        if len(query_path) > 1:
+            # query share_folder
+            pool_dict = self.dbo_pool_subscriber.find_share_poolid(self.account, query_path)
+
         if check_shared_pool:
-            if len(query_path) > 1:
-                # query share_folder
-                pool_subscriber_dbo = DboPoolSubscriber(self.sys_sql_client)
-                pool_dict = pool_subscriber_dbo.find_share_poolid(self.account, query_path)
-                if not pool_dict is None:
-                    self.poolid = pool_dict['poolid']
-                    self.poolname = pool_dict['poolname']
-                    # share folder under repo co-owner.
-                    self.can_edit = False
-                    if pool_dict['can_edit'] == 1:
-                        self.can_edit = True
+            if not pool_dict is None:
+                self.poolid = pool_dict['poolid']
+                self.poolname = pool_dict['poolname']
+                # share folder under repo co-owner.
+                self.can_edit = False
+                if pool_dict['can_edit'] == 1:
+                    self.can_edit = True
 
             # convert query_path to db_path
             if not self.poolid is None and not self.poolname is None:
@@ -61,6 +67,10 @@ class MetaManager():
         else:
             # convert query_path to db_path
             self.db_path = query_path
+
+            if not pool_dict is None:
+                #cross pool...
+                ret = False
 
         self.poolstorage = None
         self.real_path = None
@@ -79,6 +89,8 @@ class MetaManager():
             self.real_path = os.path.join(self.poolstorage, db_path_for_join)
             #logging.info(u'user query metadata path:%s, at real path: %s' % (path, self.real_path))
 
+        return ret
+
     # open database.
     #[TODO] multi-database solution.
     #def open_metadata(self, poolid):
@@ -93,39 +105,66 @@ class MetaManager():
         return client
 
     # get current path metadata.
-    def get_path(self, poolid=None, path=None):
+    def get_path(self, poolid=None, db_path=None):
         if poolid is None:
             poolid = self.poolid
-        if path is None:
-            path = self.db_path
+        if db_path is None:
+            db_path = self.db_path
 
         current_metadata = None
         if not poolid is None:
             if not self.dbo_metadata is None:
-                current_metadata = self.dbo_metadata.get_metadata(poolid, path)
+                current_metadata = self.dbo_metadata.get_metadata(poolid, db_path)
         if not current_metadata is None:
             current_metadata = self.convert_for_dropboxlike_dict(current_metadata)
         return current_metadata
 
     # get current folder metadata
-    def list_folder(self, poolid=None, path=None):
+    def list_folder(self, poolid=None, db_path=None, show_share_folder=False):
         if poolid is None:
             poolid = self.poolid
-        if path is None:
-            path = self.db_path
+        if db_path is None:
+            db_path = self.db_path
 
         dic_children = None
         if not poolid is None:
             if not self.dbo_metadata is None:
-                dic_children = self.dbo_metadata.list_folder(poolid, path)
+                dic_children = self.dbo_metadata.list_folder(poolid, db_path)
 
         metadata_dic = {}
         contents = []
 
-        # for small case used.
+        # for small case used, use append for each item.
         if not dic_children is None:
             for item in dic_children:
                 contents.append(self.convert_for_dropboxlike_dict(item))
+
+        # add shared folder
+        if show_share_folder and self.poolname == "":
+            share_folder_array = self.dbo_pool_subscriber.list_share_poolid(self.account, db_path)
+            for pool_dict in share_folder_array:
+                doc_id = 0
+                new_poolid = pool_dict['poolid']
+                metadata_conn = self.open_metadata_db(new_poolid)
+                dbo_share_folder_metadata = DboMetadata(metadata_conn)
+                if not dbo_share_folder_metadata is None:
+                    current_metadata = dbo_share_folder_metadata.get_metadata(new_poolid, "")
+                    if not current_metadata is None:
+                        doc_id = current_metadata['doc_id']
+                
+                share_folder_dict = {}
+                share_folder_dict['id'] = doc_id
+                share_folder_dict['path'] = pool_dict['poolname']
+                parent_node, item_name = os.path.split(pool_dict['poolname'])
+                share_folder_dict['name'] = item_name
+
+                #out_dic['permission'] = "{"write": True}"ll
+                share_folder_dict['permission'] = 'r'
+                if pool_dict['can_edit'] == 1:
+                    share_folder_dict['permission'] = 'rw'
+                share_folder_dict['type'] = "folder"
+                contents.append(share_folder_dict)
+
 
         metadata_dic['entries']=contents
         
@@ -261,8 +300,6 @@ class MetaManager():
         ret, current_metadata, errorMessage = self.dbo_metadata.copy(in_dic)
         if not current_metadata is None:
             current_metadata = self.convert_for_dropboxlike_dict(current_metadata)
-            # no matter file or folder should scan sub-folder.
-            tornado.ioloop.IOLoop.instance().add_callback(self.add_thumbnail,current_metadata)
 
         return ret, current_metadata, errorMessage
 
@@ -302,6 +339,7 @@ class MetaManager():
         db_path = metadata['path']
         if doc_id > 0 and dir_type=="file":
             real_path = os.path.join(self.poolstorage, db_path[1:])
+            #print "add thumbnal for file:", real_path
             thumbnail._generateThumbnails(real_path, doc_id)
         else:
             # recursively scan subfolder for copy API.

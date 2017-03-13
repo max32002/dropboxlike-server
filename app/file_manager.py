@@ -81,8 +81,12 @@ def list_files(startpath, metadata_manager, current_user):
             #print "type" , type(db_path), type(f)
             file_db_path = u'{}/{}'.format(db_path, f)
             #print file_db_path
-            metadata_manager.init_with_path(current_user,file_db_path,check_shared_pool=False)
-            metadata_manager.add_metadata_from_file()
+            init_ret = metadata_manager.init_with_path(current_user,file_db_path,check_shared_pool=False)
+            if init_ret:
+                metadata_manager.add_metadata_from_file()
+            else:
+                print "file was not add to database, because file path is in shared folder: " + file_db_path
+                
 
 def decodeName(name):
     if type(name) == str: # leave unicode ones alone

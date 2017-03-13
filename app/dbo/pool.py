@@ -117,7 +117,7 @@ CREATE TABLE IF NOT EXISTS `pool_subscriber` (
                     ret_dict = {}
                     ret_dict['poolid']=row[0]
                     ret_dict['poolname']=row[1]
-                    ret_dict['can_edit']=row[3]
+                    ret_dict['can_edit']=row[2]
         except Exception as error:
             #except sqlite3.IntegrityError:
             #except sqlite3.OperationalError, msg:
@@ -126,4 +126,36 @@ CREATE TABLE IF NOT EXISTS `pool_subscriber` (
             #raise
         return ret_dict
 
+    def list_share_poolid( self, account, path):
+        import os
+
+        ret_array = []
+        try:
+            sql = "SELECT ps.poolid, ps.localpoolname, ps.can_edit"
+            sql = sql + " FROM pool_subscriber ps"
+            sql = sql + " WHERE ps.account=? AND status in (?,?)"
+            cursor = self.conn.execute(sql, (account,dbconst.POOL_STATUS_SHARED,dbconst.POOL_STATUS_SHARED_ACCEPTED))
+            for row in cursor:
+                db_path = row[1]
+                parent_node, item_name = os.path.split(db_path)
+                if parent_node == "/":
+                    parent_node = ""
+
+                # TODO: case sensitive issue.
+                if parent_node == path:
+                    if len(row[1]) > 1:
+                        ret_dict = {}
+                        ret_dict['poolid']=row[0]
+                        ret_dict['poolname']=row[1]
+                        ret_dict['can_edit']=row[2]
+                        ret_array.append(ret_dict)
+                    else:
+                        logging.error("wrong poolname: %s", "{}".format(row[1]))
+        except Exception as error:
+            #except sqlite3.IntegrityError:
+            #except sqlite3.OperationalError, msg:
+            #print("Error: {}".format(error))
+            logging.error("sqlite error: %s", "{}".format(error))
+            #raise
+        return ret_array
 
