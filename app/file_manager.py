@@ -16,7 +16,7 @@ def travel(sql_client):
     travel_disk(sql_client)
 
 def travel_metadata(sql_client):
-    #print("start to travel.")
+    #print("start to travel metadata")
     dbo_pool = DboPool(sql_client)
 
     for pool in dbo_pool.all():
@@ -34,6 +34,7 @@ def travel_metadata(sql_client):
             metadata_manager.init_with_path(current_user,path,check_shared_pool=False)
             real_path = metadata_manager.real_path
             if not real_path is None:
+                #print "real_path:", real_path
                 if not os.path.isfile(real_path):
                     #print "real_path not exist", real_path
                     metadata_manager.delete_metadata()
@@ -66,11 +67,14 @@ def travel_disk(sql_client):
         list_files(poolstorage, metadata_manager, current_user)
 
 def list_files(startpath, metadata_manager, current_user):
-    #print "startpath:", os.path.abspath(startpath)
+    from sys import platform as _platform
+    #print "startpath:", startpath
     for root, dirs, files in os.walk(startpath):
+        #print "root:", root
         #print "root:", os.path.abspath(root)
         #db_path = os.path.abspath(root)[len(os.path.abspath(startpath)):]
-        db_path = root.replace(startpath, '')
+        #db_path = root.replace(startpath, '')
+        db_path = os.path.abspath(root)[len(os.path.abspath(startpath)):]
         #print "db_path:", db_path
         #level = root.replace(startpath, '').count(os.sep)
         #indent = ' ' * 4 * (level)
@@ -80,12 +84,20 @@ def list_files(startpath, metadata_manager, current_user):
         for f in files:
             #print "type" , type(db_path), type(f)
             file_db_path = u'{}/{}'.format(db_path, f)
+            #print "file_db_path:", file_db_path
+
+            if _platform == "darwin":
+                # MAC OS X
+                if f==".DS_Store":
+                    # skip
+                    continue
+
             #print file_db_path
             init_ret = metadata_manager.init_with_path(current_user,file_db_path,check_shared_pool=False)
             if init_ret:
                 metadata_manager.add_metadata_from_file()
             else:
-                print "file was not add to database, because file path is in shared folder: " + file_db_path
+                print u"file was not add to database, because file path is in shared folder: " + file_db_path
                 
 
 def decodeName(name):

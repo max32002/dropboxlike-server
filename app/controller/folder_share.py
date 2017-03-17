@@ -109,10 +109,21 @@ class FolderShareCreateHandler(BaseHandler):
                 errorCode = 1030
                 is_pass_check = False
 
+        shared_folder_pool_array = []
+        if is_pass_check:
+            dbo_pool_sub = DboPoolSubscriber(self.application.sql_client)
+            user_account = self.current_user['account']
+            shared_folder_pool_array = dbo_pool_sub.contain_share_poolid(user_account, path)
+            #print "shared_folder_pool_array",  shared_folder_pool_array
+            if len(shared_folder_pool_array) > 0:
+                errorMessage = "unable to create share folder which contain share folder"
+                errorCode = 1031
+                is_pass_check = False
+
         if is_pass_check:
             if self.current_user['poolid'] != old_poolid:
                 errorMessage = "unable to share folder under share folder"
-                errorCode = 1031
+                errorCode = 1032
                 is_pass_check = False
 
         ret_dict = {}

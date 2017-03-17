@@ -306,13 +306,7 @@ CREATE TABLE IF NOT EXISTS `metadata` (
             else:
                 old_poolid = in_dic['old_poolid']
 
-        old_path = ''
-        if ret:
-            if in_dic.get('old_path', '') == '':
-                errorMessage = 'old_path value cannot be empty.'
-                ret = False
-            else:
-                old_path = in_dic['old_path']
+        old_path = in_dic.get('old_path', '')
 
         if ret:
             if in_dic.get('editor', '') == '':

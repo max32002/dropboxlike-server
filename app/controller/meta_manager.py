@@ -2,6 +2,7 @@
 #encoding=utf-8
 from tornado.options import options
 import tornado.ioloop
+from tornado import gen
 import logging
 from app.dbo.metadata import DboMetadata
 from app.dbo.pool import DboPoolSubscriber
@@ -163,6 +164,8 @@ class MetaManager():
                 if pool_dict['can_edit'] == 1:
                     share_folder_dict['permission'] = 'rw'
                 share_folder_dict['type'] = "folder"
+
+                share_folder_dict['shared_folder'] = True
                 contents.append(share_folder_dict)
 
 
@@ -330,7 +333,9 @@ class MetaManager():
                     ret = self.dbo_metadata.delete(poolid, db_path, self.account)
         return ret
     
+    #@gen.coroutine
     def add_thumbnail(self, metadata):
+        #yield gen.moment
         #[TOOD]
         # create thumbnail on server side.
         #[PS]: skip crose pool add.
@@ -348,6 +353,8 @@ class MetaManager():
             if not subfolders_dict is None:
                 if 'entries' in subfolders_dict:
                     for item in subfolders_dict['entries']:
+                        #print "add thumbnal for item:", item
+                        #tornado.ioloop.IOLoop.current().spawn_callback(self.add_thumbnail,item)
                         self.add_thumbnail(metadata=item)
 
     def delete_thumbnail(self, metadata):

@@ -254,12 +254,12 @@ def call_claimed_repo_update_api(repo_token):
     http_obj = libHttp.Http()
     (new_html_string, http_code) = http_obj.get_http_response_core(api_url, data=json_body)
     json_obj = None
+    #print "server code: %d" % (http_code,)
+    #print "server message: %s" % (new_html_string,)
     if http_code==200:
         # direct read the string to json.
         json_obj = json.loads(new_html_string)
     else:
-        #print "server return error code: %d" % (http_code,)
-        #print "server return error message: %s" % (new_html_string,)
         if http_code==400:
             json_obj = None
             try :
