@@ -182,7 +182,6 @@ class FolderShareCreateHandler(BaseHandler):
             
         if is_pass_check:
             # every thing is correct
-            self.set_status(200)
             self.write(ret_dict)
         else:
             self.set_status(400)
@@ -236,12 +235,12 @@ class FolderShareCreateHandler(BaseHandler):
         api_reg_pattern = "1/repo/share/reg_folder"
         api_url = "https://%s/%s" % (options.api_hostname,api_reg_pattern)
 
-        confirm_dict = {}
+        send_dict = {}
         repo_dbo = DboRepo(self.application.sql_client)
         repo_dict = repo_dbo.first()
         if not repo_dict is None:
-            confirm_dict['repo_token'] = repo_dict['repo_token']
-        json_body = json.dumps(confirm_dict)
+            send_dict['repo_token'] = repo_dict['repo_token']
+        json_body = json.dumps(send_dict)
         #print "json_body", json_body
 
         http_obj = libHttp.Http()
@@ -408,7 +407,6 @@ class FolderShareAuthHandler(BaseHandler):
             
         if is_pass_check:
             # every thing is correct
-            self.set_status(200)
             self.write(ret_dict)
         else:
             self.set_status(400)
@@ -470,14 +468,249 @@ class FolderShareAuthHandler(BaseHandler):
         api_reg_pattern = "1/repo/share/confirm_folder"
         api_url = "https://%s/%s" % (options.api_hostname,api_reg_pattern)
 
-        confirm_dict = {}
+        send_dict = {}
         repo_dbo = DboRepo(self.application.sql_client)
         repo_dict = repo_dbo.first()
         if not repo_dict is None:
-            confirm_dict['repo_token'] = repo_dict['repo_token']
-        confirm_dict['share_code'] = share_code
-        confirm_dict['request_id'] = request_id
-        json_body = json.dumps(confirm_dict)
+            send_dict['repo_token'] = repo_dict['repo_token']
+        send_dict['share_code'] = share_code
+        send_dict['request_id'] = request_id
+        json_body = json.dumps(send_dict)
+        #print "json_body", json_body
+
+        http_obj = libHttp.Http()
+        (new_html_string, http_code) = http_obj.get_http_response_core(api_url, data=json_body)
+        json_obj = None
+        if http_code>=200 and http_code <= 403:
+            # direct read the string to json.
+            try :
+                json_obj = json.loads(new_html_string)
+            except Exception, err:
+                # not is json format.
+                pass
+        else:
+            #print "server return error code: %d" % (http_code,)
+            pass
+            # error
+        return http_code,json_obj
+
+
+class FolderUnshareHandler(BaseHandler):
+    def post(self):
+        self.set_header('Content-Type','application/json')
+        auth_dbo = self.db_account
+
+        errorMessage = ""
+        errorCode = 0
+        is_pass_check = True
+
+        if auth_dbo is None:
+            errorMessage = "database return null"
+            errorCode = 1001
+            is_pass_check = False
+
+        #logging.info("body:"+self.request.body)
+        _body = None
+        if is_pass_check:
+            is_pass_check = False
+            try :
+                _body = json.loads(self.request.body)
+                is_pass_check = True
+            except Exception:
+                #raise BadRequestError('Wrong JSON', 3009)
+                errorMessage = "wrong json format"
+                errorCode = 1003
+                pass
+
+        path = None
+        if is_pass_check:
+            is_pass_check = False
+            if _body:
+                try :
+                    if 'path' in _body:
+                        path = _body['path']
+                    is_pass_check = True
+                except Exception:
+                    errorMessage = "parse json fail"
+                    errorCode = 1004
+                    pass
+
+        if is_pass_check:
+            ret, errorMessage = self.check_path(path)
+            if not ret:
+                is_pass_check = False
+                errorCode = 1010
+
+        if is_pass_check:
+            if path=="/":
+                path = ""
+
+            if len(path)==0:
+                # empty is not allow in this API.
+                errorMessage = "path is empty"
+                errorCode = 1013
+                is_pass_check = False
+
+        if is_pass_check:
+            if self.current_user['poolid'] is None:
+                errorMessage = "no unshare permission"
+                errorCode = 1015
+                is_pass_check = False
+                    
+        old_real_path = None
+        old_poolid = None
+        if is_pass_check:
+            self.metadata_manager = MetaManager(self.application.sql_client, self.current_user, path)
+
+            old_real_path = self.metadata_manager.real_path
+            old_poolid = self.metadata_manager.poolid
+            if not old_real_path is None:
+                if not os.path.exists(old_real_path):
+                    # path not exist
+                    errorMessage = "real path is not exist"
+                    errorCode = 1020
+                    is_pass_check = False
+            else:
+                errorMessage = "no permission"
+                errorCode = 1030
+                is_pass_check = False
+
+        new_real_path = None
+        new_poolid = None
+        to_metadata_manager = None
+        if is_pass_check:
+            to_metadata_manager = MetaManager(self.application.sql_client, self.current_user, "")
+            to_metadata_manager.init_with_path(self.current_user,path,check_shared_pool=False)
+
+            new_real_path = to_metadata_manager.real_path
+            new_poolid = to_metadata_manager.poolid
+            if not new_real_path is None:
+                if os.path.exists(new_real_path):
+                    # path exist, conflict, @_@; delete or not?
+                    self._deletePath(new_real_path)
+            else:
+                errorMessage = "no permission"
+                errorCode = 1030
+                is_pass_check = False
+
+        if is_pass_check:
+            is_pass_check, errorMessage, errorCode = self._revokeShareCode(old_poolid)
+ 
+        if is_pass_check:
+            current_metadata = None
+            is_pass_check, current_metadata, errorMessage = to_metadata_manager.move_metadata(self.metadata_manager.poolid, self.metadata_manager.db_path)
+
+        if is_pass_check:
+            is_pass_check = self.move_shared_folder_back(old_poolid, new_real_path)
+            if not is_pass_check:
+                errorMessage = "pool folder not exist or target folder conflict"
+                errorCode = 1040
+                is_pass_check = False
+
+
+        if is_pass_check:
+            is_pass_check, current_metadata, errorMessage = self.remove_shared_folder_pool(old_poolid)
+
+        ret_dict = {'path': path}
+            
+        if is_pass_check:
+            # every thing is correct
+            self.write(ret_dict)
+        else:
+            self.set_status(400)
+            self.write(dict(error=dict(message=errorMessage,code=errorCode)))
+            logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
+
+    def _revokeShareCode(self, old_poolid):
+        errorMessage = ""
+        errorCode = 0
+        is_pass_check = False
+
+        folder_sharing_dbo = DboFolderSharing(self.application.sql_client)
+        share_code_array = folder_sharing_dbo.list_share_code(old_poolid)
+        # start to revoke share_code on public server.
+
+        for share_code_dict in share_code_array:
+            is_pass_check = False
+
+            http_code,json_obj = self.call_folder_unshare_reg_api(share_code_dict['share_code'])
+            if http_code > 0:
+                if http_code == 200 and not json_obj is None:
+                    is_pass_check = True
+
+                if http_code >= 400 and http_code <= 403 and not json_obj is None:
+                    # WHO CARE?
+                    is_pass_check = True
+                    pass
+            else:
+                errorMessage = "login server is not able to connect."
+                errorCode = 1040
+        return is_pass_check, errorMessage, errorCode
+
+    #@gen.coroutine
+    def _deletePath(self, real_path):
+        import shutil
+        if os.path.exists(real_path):
+            if os.path.isfile(real_path):
+                try:
+                    os.unlink(real_path)
+                except Exception as error:
+                    errorMessage = "{}".format(error)
+                    logging.error(errorMessage)
+                    pass
+            else:
+                for root, dirs, files in os.walk(real_path):
+                    yield gen.moment
+                    for f in files:
+                        os.unlink(os.path.join(root, f))
+                    for d in dirs:
+                        shutil.rmtree(os.path.join(root, d))
+                shutil.rmtree(real_path)
+
+    def move_shared_folder_back(self, old_poolid, new_real_path):
+        ret = False
+        if old_poolid > 0:
+            pool_home = '%s/storagepool/%s' % (options.storage_access_point, old_poolid)
+            if os.path.exists(pool_home) and not os.path.exists(new_real_path):
+                import shutil
+                shutil.move(pool_home, new_real_path)
+                ret = True
+            else:
+                # error
+                pass
+        return ret
+
+    def remove_shared_folder_pool(self, poolid):
+        errorMessage = ""
+        errorCode = 0
+        is_pass_check = True
+
+        # TODO: support undo this unshare action.
+        if is_pass_check:
+            if poolid > 0:
+                pool_subscriber_dbo = DboPoolSubscriber(self.application.sql_client)
+                is_pass_check = pool_subscriber_dbo.delete_pool(poolid)
+                if not is_pass_check:
+                    errorMessage = "Delete pool_subscriber fail"
+                    errorCode = 1032
+            else:
+                is_pass_check = False
+                errorMessage = "poolid is wrong"
+                errorCode = 1031
+
+        return is_pass_check, errorMessage, errorCode
+
+    def call_folder_unshare_reg_api(self, share_code):
+        api_reg_pattern = "1/repo/share/unshare_folder"
+        api_url = "https://%s/%s" % (options.api_hostname,api_reg_pattern)
+
+        send_dict = {}
+        repo_dbo = DboRepo(self.application.sql_client)
+        repo_dict = repo_dbo.first()
+        if not repo_dict is None:
+            send_dict['repo_token'] = repo_dict['repo_token']
+        send_dict['share_code'] = share_code
+        json_body = json.dumps(send_dict)
         #print "json_body", json_body
 
         http_obj = libHttp.Http()

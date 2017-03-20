@@ -32,6 +32,7 @@ if __name__ == "__main__":
         # share folder
         (r'/1/sharing/create_shared_folder', 'app.controller.FolderShareCreateHandler'),
         (r'/1/repo/auth_shared_folder', 'app.controller.FolderShareAuthHandler'),
+        (r'/1/sharing/unshare_folder', 'app.controller.FolderUnshareHandler'),
 
         # [TODO]: for streaming
         (r'/1/files/get_temporary_link', 'app.controller.MetadataHandler'),

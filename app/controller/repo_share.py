@@ -102,7 +102,6 @@ class RepoShareCreateHandler(BaseHandler):
             
         if is_pass_check:
             # every thing is correct
-            self.set_status(200)
             self.write(ret_dict)
         else:
             self.set_status(400)
@@ -113,12 +112,12 @@ class RepoShareCreateHandler(BaseHandler):
         api_reg_pattern = "1/repo/share/reg"
         api_url = "https://%s/%s" % (options.api_hostname,api_reg_pattern)
 
-        confirm_dict = {}
+        send_dict = {}
         repo_dbo = DboRepo(self.application.sql_client)
         repo_dict = repo_dbo.first()
         if not repo_dict is None:
-            confirm_dict['repo_token'] = repo_dict['repo_token']
-        json_body = json.dumps(confirm_dict)
+            send_dict['repo_token'] = repo_dict['repo_token']
+        json_body = json.dumps(send_dict)
         #print "json_body", json_body
 
         http_obj = libHttp.Http()
@@ -285,7 +284,6 @@ class RepoShareAuthHandler(BaseHandler):
             
         if is_pass_check:
             # every thing is correct
-            self.set_status(200)
             self.write(ret_dict)
         else:
             self.set_status(400)
@@ -347,14 +345,14 @@ class RepoShareAuthHandler(BaseHandler):
         api_reg_pattern = "1/repo/share/confirm"
         api_url = "https://%s/%s" % (options.api_hostname,api_reg_pattern)
 
-        confirm_dict = {}
+        send_dict = {}
         repo_dbo = DboRepo(self.application.sql_client)
         repo_dict = repo_dbo.first()
         if not repo_dict is None:
-            confirm_dict['repo_token'] = repo_dict['repo_token']
-        confirm_dict['share_code'] = share_code
-        confirm_dict['request_id'] = request_id
-        json_body = json.dumps(confirm_dict)
+            send_dict['repo_token'] = repo_dict['repo_token']
+        send_dict['share_code'] = share_code
+        send_dict['request_id'] = request_id
+        json_body = json.dumps(send_dict)
         #print "json_body", json_body
 
         http_obj = libHttp.Http()

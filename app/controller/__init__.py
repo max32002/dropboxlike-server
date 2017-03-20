@@ -32,4 +32,4 @@ from app.controller.repo_share import RepoShareAuthHandler
 # for folder share
 from app.controller.folder_share import FolderShareCreateHandler
 from app.controller.folder_share import FolderShareAuthHandler
-
+from app.controller.folder_share import FolderUnshareHandler

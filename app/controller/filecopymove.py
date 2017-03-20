@@ -169,10 +169,8 @@ class FileCopyMoveHandler(BaseHandler):
                     errorCode = 1025
                     is_pass_check = False
 
-        from_shared_folder_pool_array = []
-        dbo_pool_sub = DboPoolSubscriber(self.application.sql_client)
-        user_account = self.current_user['account']
-        from_shared_folder_pool_array = dbo_pool_sub.contain_share_poolid(user_account, from_path)
+        from_shared_folder_pool_array = self.from_metadata_manager.contain_pool_array()
+        #print "from_shared_folder_pool_array", from_shared_folder_pool_array
         #self.application.sql_client.isolation_level = None
         if is_pass_check:
             # rename shared folder under from_path
@@ -192,8 +190,12 @@ class FileCopyMoveHandler(BaseHandler):
                         errorCode = 1026
                         print errorMessage, errorCode
 
+        # PS: need roolback, don't move variable into sub block.
+        dbo_pool_sub = DboPoolSubscriber(self.application.sql_client)
         if self.operation is self.OPERATION_MOVE:
             if is_pass_check:
+                user_account = self.current_user['account']
+
                 for shared_folder_item in from_shared_folder_pool_array:
                     update_poolid = shared_folder_item['poolid']
                     old_localpoolname = shared_folder_item['poolname']
@@ -207,11 +209,16 @@ class FileCopyMoveHandler(BaseHandler):
             
             # update metadata. (owner)
             if self.operation is self.OPERATION_COPY:
-                is_pass_check, current_metadata, errorMessage = self.to_metadata_manager.copy_metadata(self.from_metadata_manager.poolid, self.from_metadata_manager.db_path)
-                if current_metadata is None:
-                    errorMessage = "metadata not found"
-                    errorCode = 1040
-                    is_pass_check = False
+                if len(self.from_metadata_manager.db_path) > 0:
+                    is_pass_check, current_metadata, errorMessage = self.to_metadata_manager.copy_metadata(self.from_metadata_manager.poolid, self.from_metadata_manager.db_path)
+                    if current_metadata is None:
+                        errorMessage = "metadata not found"
+                        errorCode = 1040
+                        is_pass_check = False
+                else:
+                    # shared folder root
+                    pass
+                current_metadata = self.to_metadata_manager.get_path()
 
                 #self.to_metadata_manager.copy(from_path, to_path, is_dir=is_dir)
             if self.operation is self.OPERATION_MOVE:
@@ -223,8 +230,8 @@ class FileCopyMoveHandler(BaseHandler):
                         is_pass_check = False
                 else:
                     # shared folder root
-                    current_metadata = self.from_metadata_manager.get_path()
                     pass
+                current_metadata = self.to_metadata_manager.get_path()
 
         if self.operation is self.OPERATION_MOVE:
             if is_pass_check:
@@ -253,6 +260,7 @@ class FileCopyMoveHandler(BaseHandler):
             if not current_metadata is None:
                 self.set_header("oid",current_metadata["id"])
                 self.write(current_metadata)
+                logging.info(current_metadata)
         else:
             self.set_status(400)
             self.write(dict(error=dict(message=errorMessage,code=errorCode)))

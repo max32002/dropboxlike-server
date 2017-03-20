@@ -135,14 +135,13 @@ def _generateThumbnails(src_file, doc_id):
         for w,h in thumbnail_size_list:
             #time.sleep(2)
             yield gen.sleep(1)
+            #yield gen.moment
             filename = "w%sh%s%s" % (str(w), str(h),file_extension)
             thumbnail_path = os.path.join(thumbnail_folder,filename)
             #logging.info("generateThumbnails at path: %s ... ", thumbnail_path)
-            #ret = makeThumb(src_file,thumbnail_path,size=(w,h),pad=True)
             ret = makeThumb(src_file,thumbnail_path,size=(w,h),pad=True)
             if not ret:
                 break
-            #time.sleep(5)
             yield gen.sleep(50)
 
 

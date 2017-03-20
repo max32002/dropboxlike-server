@@ -6,6 +6,7 @@ from tornado import gen
 import logging
 from app.dbo.metadata import DboMetadata
 from app.dbo.pool import DboPoolSubscriber
+from app.dbo.pool import DboPool
 from app.lib import utils
 from app.lib import thumbnail
 import json
@@ -22,6 +23,7 @@ class MetaManager():
     can_edit = False
     path = None
     real_path = None
+    full_path = ""
     db_path = None
     sys_sql_client = None
 
@@ -75,6 +77,7 @@ class MetaManager():
 
         self.poolstorage = None
         self.real_path = None
+        self.full_path = query_path
         if not self.poolid is None:
             self.poolstorage = u'%s/storagepool/%s' % (options.storage_access_point, self.poolid)
             #logging.info('options.storage_access_point %s' % (options.storage_access_point))
@@ -84,13 +87,43 @@ class MetaManager():
                 metadata_conn = self.open_metadata_db(self.poolid)
                 self.dbo_metadata = DboMetadata(metadata_conn)
 
-            db_path_for_join = self.db_path[1:]
-            #print "db_path_for_join", db_path_for_join
-            #self.real_path = os.path.join(self.poolstorage, db_path_for_join.decode('utf-8'))
-            self.real_path = os.path.join(self.poolstorage, db_path_for_join)
-            #logging.info(u'user query metadata path:%s, at real path: %s' % (path, self.real_path))
+            db_path_for_join = ""
+            self.real_path = self.poolstorage
+            if len(self.db_path) > 0:
+                db_path_for_join = self.db_path[1:]
+                #print "db_path_for_join", db_path_for_join
+                #self.real_path = os.path.join(self.poolstorage, db_path_for_join.decode('utf-8'))
+                self.real_path = os.path.join(self.poolstorage, db_path_for_join)
+            #logging.info(u'user query metadata path:%s, at real path: %s' % (query_path, self.real_path))
+
+            root_path = self.poolname
+            #logging.info('db_path_for_join %s' % (db_path_for_join))
+            self.full_path = root_path
+            if len(db_path_for_join) > 0:
+                self.full_path = u'%s/%s' % (root_path, db_path_for_join)
+            #logging.info('full_path %s' % (self.full_path))
 
         return ret
+
+    def contain_pool_array(self, query_path=None):
+        if query_path is None:
+            query_path = self.full_path
+        #logging.info('query_path %s' % (query_path))
+        return self.dbo_pool_subscriber.contain_share_poolid(self.account, query_path)
+
+    def pool_owner(self, query_path=None):
+        if query_path is None:
+            query_path = self.full_path
+        #logging.info('query_path %s' % (query_path))
+        owner = self.account
+
+        if not self.poolid is None:
+            if len(query_path) > 1:
+                dbo_pool = DboPool(self.sys_sql_client)
+                pool_dict = dbo_pool.pk_query(self.poolid)
+                if not pool_dict is None:
+                    owner = pool_dict['ownerid']
+        return owner
 
     # open database.
     #[TODO] multi-database solution.
@@ -100,7 +133,7 @@ class MetaManager():
             #db_path = '%s/metadata/%s/metadata.db' % (options.storage_access_point,poolid)
             #logging.info("owner metadata poolid: %s ... ", db_path)
             #client = sqlite3.connect(db_path)
-        db_path = '%s/metadata.db' % (options.storage_access_point)
+        db_path = u'%s/metadata.db' % (options.storage_access_point)
         #logging.info("open metadata poolid: %s ... ", db_path)
         client = sqlite3.connect(db_path)
         return client
