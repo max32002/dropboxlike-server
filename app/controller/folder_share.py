@@ -551,6 +551,12 @@ class FolderUnshareHandler(BaseHandler):
         if is_pass_check:
             # every thing is correct
             self.write(ret_dict)
+            
+            folder_id = 0
+            current_metadata = to_metadata_manager.get_path()
+            if not current_metadata is None:
+                folder_id = current_metadata["id"]
+            self.set_header("oid", folder_id)
         else:
             self.set_status(400)
             self.write(dict(error=dict(message=errorMessage,code=errorCode)))
