@@ -356,28 +356,32 @@ class FolderShareAuthHandler(BaseHandler):
                 if http_code == 200 and not json_obj is None:
                     #print "json:", json_obj
                     account_sn = json_obj.get('account_sn','')
-                    ret_dict['account_sn'] = account_sn
-                    ret, user_account, user_password = auth_dbo.is_account_sn_exist(account_sn);
+                    if(len(account_sn) >1):
+                        ret_dict['account_sn'] = account_sn
+                        ret, user_account, user_password = auth_dbo.is_account_sn_exist(account_sn);
+                        if not ret:
+                            # new user.
+                            is_owner=0
+                            ret,user_account,user_password = auth_dbo.new_user(is_owner, account_sn=account_sn)
+                            #print "new user:",ret,account,password
+                            if ret and len(user_account) > 0 and len(user_password) > 0:
+                                #account_info = "%s,%s" % (user_account,user_password)
+                                is_pass_check = True
+                            else:
+                                errorMessage = "create new user fail"
+                                errorCode = 1040
 
-                    if not ret:
-                        # new user.
-                        is_owner=0
-                        ret,user_account,user_password = auth_dbo.new_user(is_owner, account_sn=account_sn)
-                        #print "new user:",ret,account,password
-                        if ret and len(user_account) > 0 and len(user_password) > 0:
-                            #account_info = "%s,%s" % (user_account,user_password)
-                            is_pass_check = True
                         else:
-                            errorMessage = "create new user fail"
-                            errorCode = 1040
+                            # shared folder user.
+                            is_pass_check = True
+                            pass
 
+                        ret_dict['account'] = user_account
+                        ret_dict['password'] = user_password
                     else:
-                        # shared folder user.
-                        is_pass_check = True
-                        pass
-
-                    ret_dict['account'] = user_account
-                    ret_dict['password'] = user_password
+                        errorMessage = "Dropbox login server reponse wrong data"
+                        errorCode = 1030
+                        is_pass_check = False
 
 
                 if http_code >= 400 and http_code <= 403 and not json_obj is None:
@@ -551,7 +555,7 @@ class FolderUnshareHandler(BaseHandler):
         if is_pass_check:
             # every thing is correct
             self.write(ret_dict)
-            
+
             folder_id = 0
             current_metadata = to_metadata_manager.get_path()
             if not current_metadata is None:
