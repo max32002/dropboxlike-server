@@ -3,6 +3,7 @@
 
 from app.handlers import BaseHandler
 import logging
+from tornado import gen
 import json
 from app.controller.meta_manager import MetaManager
 from app.lib import thumbnail
@@ -15,9 +16,8 @@ class DownloadHandler(BaseHandler):
     def get(self):
         self.post()
 
+    #@gen.coroutine
     def post(self):
-        self.set_header('Content-Type','application/json')
-
         is_pass_check = True
         errorMessage = ""
         errorCode = 0
@@ -120,24 +120,50 @@ class DownloadHandler(BaseHandler):
                 doc_id = query_result['id']
                 download_path = thumbnail._getThumbnailPath(doc_id, size, os.path.splitext(filename)[-1])
 
-            self._downloadData(download_path, filename)
+            is_pass_check = self._downloadData(download_path, filename)
+            if not is_pass_check:
+                for i in range(0):
+                    logging.info("waiting thumbnail file to ready(%d): %s ... " % (i, download_path))
+                    #yield gen.sleep(2)
+                    is_pass_check = self._downloadData(download_path, filename)
+                    if is_pass_check:
+                        break
+
+            if not is_pass_check:
+                errorMessage = "file not found"
+                errorCode = 1030
+                is_pass_check = False
+
+        if is_pass_check:
+            pass
         else:
-            self.set_status(400)
+            self.set_header('Content-Type','application/json')
+            if errorCode != 1030:
+                self.set_status(400)
+            else:
+                # only this case return 404.
+                self.set_status(404)
             self.write(dict(error=dict(message=errorMessage,code=errorCode)))
-            #logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
+            logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
+        self.finish()
 
     def _downloadData(self, real_path, filename):
-        self.set_header ('Content-Type', 'application/octet-stream')
-        self.set_header ('Content-Disposition', 'attachment; filename='+filename)
-        buf_size = 1024 * 200
-        if os.path.exists(real_path):
+        ret = False
+        
+        logging.info("download real file: %s ... " % (real_path))
+        if os.path.isfile(real_path):
             with open(real_path, 'rb') as f:
+                buf_size = 1024 * 200
+                self.set_header ('Content-Type', 'application/octet-stream')
+                self.set_header ('Content-Disposition', 'attachment; filename='+filename)
                 while True:
                     data = f.read(buf_size)
                     if not data:
                         break
                     self.write(data)
-        self.finish()
+                ret = True
+        return ret
+            
 
 class ThumbnailHandler(DownloadHandler):
     mode = "THUMBNAIL"

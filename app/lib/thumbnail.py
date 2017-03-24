@@ -29,7 +29,6 @@ _formats_to_pil = {
     "tiff": "TIFF"
 }
 
-
 # todo: 
 #   my doc_id may conflict(duplicate) between different pool. 
 #   (very very hard to conflict, ignore to process this issue)
@@ -134,8 +133,8 @@ def _generateThumbnails(src_file, doc_id):
         thumbnail_folder = getThumbnailFolder(doc_id)
         for w,h in thumbnail_size_list:
             #time.sleep(2)
-            yield gen.sleep(1)
-            #yield gen.moment
+            yield gen.moment
+            #yield gen.sleep(1)
             filename = "w%sh%s%s" % (str(w), str(h),file_extension)
             thumbnail_path = os.path.join(thumbnail_folder,filename)
             #logging.info("generateThumbnails at path: %s ... ", thumbnail_path)

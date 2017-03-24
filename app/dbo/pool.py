@@ -178,7 +178,7 @@ CREATE TABLE IF NOT EXISTS `pool_subscriber` (
 
         ret_array = []
         try:
-            sql = "SELECT ps.poolid, ps.localpoolname, ps.can_edit"
+            sql = "SELECT ps.poolid, ps.localpoolname, ps.can_edit, ps.status"
             sql = sql + " FROM pool_subscriber ps"
             sql = sql + " WHERE ps.account=? AND status in (?,?)"
             cursor = self.conn.execute(sql, (account,dbconst.POOL_STATUS_SHARED,dbconst.POOL_STATUS_SHARED_ACCEPTED))
@@ -195,6 +195,7 @@ CREATE TABLE IF NOT EXISTS `pool_subscriber` (
                         ret_dict['poolid']=row[0]
                         ret_dict['poolname']=row[1]
                         ret_dict['can_edit']=row[2]
+                        ret_dict['status']=row[3]
                         ret_array.append(ret_dict)
                     else:
                         logging.error("wrong poolname: %s", "{}".format(row[1]))
@@ -212,7 +213,7 @@ CREATE TABLE IF NOT EXISTS `pool_subscriber` (
 
         ret_array = []
         try:
-            sql = "SELECT ps.poolid, ps.localpoolname, ps.can_edit, p.ownerid"
+            sql = "SELECT ps.poolid, ps.localpoolname, ps.can_edit, ps.status, p.ownerid"
             sql = sql + " FROM pool_subscriber ps"
             sql = sql + " INNER JOIN pool p on p.poolid = ps.poolid"
             sql = sql + " WHERE ps.account=? AND status in (?,?)"
@@ -229,7 +230,8 @@ CREATE TABLE IF NOT EXISTS `pool_subscriber` (
                         ret_dict['poolid']=row[0]
                         ret_dict['poolname']=row[1]
                         ret_dict['can_edit']=row[2]
-                        ret_dict['ownerid']=row[3]
+                        ret_dict['status']=row[3]
+                        ret_dict['ownerid']=row[4]
                         ret_array.append(ret_dict)
                     else:
                         logging.error("wrong poolname: %s", "{}".format(row[1]))

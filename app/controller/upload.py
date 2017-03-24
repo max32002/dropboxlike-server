@@ -49,7 +49,7 @@ class UploadHandler(BaseHandler):
         mute = None
         if is_pass_check:
             is_pass_check = False
-            logging.info('%s' % (str(_body)))
+            #logging.info('%s' % (str(_body)))
             if _body:
                 try :
                     if 'path' in _body:

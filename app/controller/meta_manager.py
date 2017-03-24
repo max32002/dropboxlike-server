@@ -7,6 +7,7 @@ import logging
 from app.dbo.metadata import DboMetadata
 from app.dbo.pool import DboPoolSubscriber
 from app.dbo.pool import DboPool
+from app.dbo import dbconst
 from app.lib import utils
 from app.lib import thumbnail
 import json
@@ -128,15 +129,25 @@ class MetaManager():
     # open database.
     #[TODO] multi-database solution.
     #def open_metadata(self, poolid):
+    def get_metadata_db_path(self, poolid):
+        db_path = u'%s/metadata.db' % (options.storage_access_point)
+        #logging.info("open metadata poolid: %s ... ", db_path)
+        return db_path
+
+
+    # open database.
+    #[TODO] multi-database solution.
+    #def open_metadata(self, poolid):
     def open_metadata_db(self, poolid):
         #if not poolid is None:
             #db_path = '%s/metadata/%s/metadata.db' % (options.storage_access_point,poolid)
             #logging.info("owner metadata poolid: %s ... ", db_path)
             #client = sqlite3.connect(db_path)
-        db_path = u'%s/metadata.db' % (options.storage_access_point)
-        #logging.info("open metadata poolid: %s ... ", db_path)
+        db_path = self.get_metadata_db_path(poolid)
         client = sqlite3.connect(db_path)
         return client
+
+
 
     # get current path metadata.
     def get_path(self, poolid=None, db_path=None):
@@ -196,6 +207,8 @@ class MetaManager():
                 share_folder_dict['permission'] = 'r'
                 if pool_dict['can_edit'] == 1:
                     share_folder_dict['permission'] = 'rw'
+                if pool_dict['status'] == dbconst.POOL_STATUS_SHARED:
+                    share_folder_dict['permission'] = 'rwx'
                 share_folder_dict['type'] = "folder"
 
                 share_folder_dict['shared_folder'] = True
@@ -273,7 +286,7 @@ class MetaManager():
         check_metadata = self.get_path()
         if not check_metadata is None:
             # [TODO]: handle special case: same path insert twice, it is conflict.
-            ret = self.delete_metadata(current_metadata=metadata)
+            ret = self.delete_metadata(current_metadata=check_metadata)
 
         ret, current_metadata, errorMessage = self.dbo_metadata.insert(in_dic)
         if not current_metadata is None:
@@ -377,7 +390,7 @@ class MetaManager():
         db_path = metadata['path']
         if doc_id > 0 and dir_type=="file":
             real_path = os.path.join(self.poolstorage, db_path[1:])
-            #print "add thumbnal for file:", real_path
+            logging.info(u"add thumbnal for file: %s", real_path)
             thumbnail._generateThumbnails(real_path, doc_id)
         else:
             # recursively scan subfolder for copy API.
