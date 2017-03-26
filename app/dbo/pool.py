@@ -88,9 +88,7 @@ CREATE TABLE IF NOT EXISTS `pool_subscriber` (
                 self.conn.commit()
             result = True
         except Exception as error:
-            #except sqlite3.IntegrityError:
-            #except sqlite3.OperationalError, msg:
-            #print("Error: {}".format(error))
+            logging.error("1:{},2:{},3:{},4:{},5:{}".format(account, poolid, localpoolname, can_edit, status))
             logging.error("sqlite error: %s", "{}".format(error))
             #logging.error("sql: %s", "{}".format(sql))
             #raise
@@ -262,3 +260,15 @@ CREATE TABLE IF NOT EXISTS `pool_subscriber` (
             #raise
         return result
 
+    def is_pool_subscribed( self, account, poolid):
+        ret = False
+        try:
+            sql = "SELECT " + self.sql_return_fields
+            sql = sql + " FROM pool_subscriber ps"
+            sql = sql + " WHERE ps.account=? AND ps.poolid=?"
+            cursor = self.conn.execute(sql, (account,poolid))
+            for row in cursor:
+                ret = True
+        except Exception as error:
+            logging.error("sqlite error: %s", "{}".format(error))
+        return ret

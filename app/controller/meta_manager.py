@@ -22,7 +22,7 @@ class MetaManager():
     poolid = None
     poolname = None
     can_edit = False
-    path = None
+    query_path = None
     real_path = None
     full_path = ""
     db_path = None
@@ -43,6 +43,7 @@ class MetaManager():
 
         self.poolname = None
         self.can_edit = False
+        self.query_path = query_path
         if not self.poolid is None:
             # default access user-home.
             self.poolname = ""
@@ -170,6 +171,10 @@ class MetaManager():
             poolid = self.poolid
         if db_path is None:
             db_path = self.db_path
+        if db_path is None:
+            # unable found this path in database.
+            db_path = self.query_path
+
 
         dic_children = None
         if not poolid is None:
@@ -185,7 +190,7 @@ class MetaManager():
                 contents.append(self.convert_for_dropboxlike_dict(item))
 
         # add shared folder
-        if show_share_folder and self.poolname == "":
+        if show_share_folder and (self.poolname == "" or self.poolname is None):
             share_folder_array = self.dbo_pool_subscriber.list_share_poolid(self.account, db_path)
             for pool_dict in share_folder_array:
                 doc_id = 0

@@ -5,7 +5,7 @@ from app.dbo.basetable import BaseTable
 #data object for Drive
 #############################################################
 class DboFolderSharing(BaseTable):
-    sql_return_fields = "share_code,password,poolid,share_status"
+    sql_return_fields = "share_code,password,poolid,poolname,can_edit,share_status"
     sql_table_name = "folder_sharing"
     sql_primary_key = "share_code"
     sql_create_table = '''
@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS `folder_sharing` (
 `share_code`   TEXT NOT NULL PRIMARY KEY,
 `password`   TEXT NULL,
 `poolid` INTEGER NOT NULL,
+`poolname` TEXT NOT NULL,
 `can_edit` INTEGER NOT NULL,
 `share_status` INTEGER NOT NULL,
 `createdTime` DATETIME NULL
@@ -28,12 +29,12 @@ CREATE TABLE IF NOT EXISTS `folder_sharing` (
     # return:
     #       False: add fail.
     #       True: add successfully.
-    def add(self, share_code, password, poolid, can_edit):
+    def add(self, share_code, password, poolid, poolname, can_edit):
         result = False
         try:
             # insert master
-            sql = "INSERT INTO folder_sharing (share_code, password, poolid, can_edit, share_status, createdTime) VALUES (?,?,?,?,1,datetime('now'));"
-            cursor = self.conn.execute(sql, (share_code, password, poolid, can_edit))
+            sql = "INSERT INTO folder_sharing (share_code, password, poolid, poolname, can_edit, share_status, createdTime) VALUES (?,?,?,?,?,1,datetime('now'));"
+            cursor = self.conn.execute(sql, (share_code, password, poolid, poolname, can_edit))
             self.conn.commit()
             result = True
         except Exception as error:

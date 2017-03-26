@@ -258,7 +258,6 @@ class RepoShareAuthHandler(BaseHandler):
                     ret_dict['account'] = user_account
                     ret_dict['password'] = user_password
 
-
                 if http_code >= 400 and http_code <= 403 and not json_obj is None:
                     # by pass the error message
                     is_pass_check = False
@@ -266,10 +265,17 @@ class RepoShareAuthHandler(BaseHandler):
                     if not error_json is None:
                         errorMessage = error_json.get('message','')
                         errorCode = error_json.get('code',0)
-
             else:
                 #print "server is not able be connected or cancel by user"
                 pass
+
+        if is_pass_check:
+            pool_dbo = DboPool(self.application.sql_client)
+            new_poolid = pool_dbo.get_root_pool(user_account)
+            if not new_poolid is None:
+                is_pass_check = False
+                errorMessage = "subscribed"
+                errorCode = 1050
 
         if is_pass_check:
             is_pass_check, errorMessage, errorCode = self.create_shared_repo_pool(user_account)

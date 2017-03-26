@@ -150,7 +150,9 @@ class FolderShareCreateHandler(BaseHandler):
                             self.metadata_manager = MetaManager(self.application.sql_client, self.current_user, path)
                             is_pass_check, current_metadata, errorMessage = self.metadata_manager.move_metadata(old_poolid, path)
                             if is_pass_check:
-                                is_pass_check = folder_sharing_dbo.add(share_code, password, new_poolid, can_edit)
+                                parent_node, poolname = os.path.split(path)
+                                poolname = "/" + poolname
+                                is_pass_check = folder_sharing_dbo.add(share_code, password, new_poolid, poolname, can_edit)
                                 if not is_pass_check:
                                     errorMessage = "insert new folder sharing info to database fail"
                                     errorCode = 1043
@@ -378,6 +380,9 @@ class FolderShareAuthHandler(BaseHandler):
 
                         ret_dict['account'] = user_account
                         ret_dict['password'] = user_password
+
+                        if is_pass_check:
+                            is_pass_check, errorMessage, errorCode = self.subscribe_shared_folder(user_account, sharing_dict)
                     else:
                         errorMessage = "Dropbox login server reponse wrong data"
                         errorCode = 1030
@@ -401,7 +406,57 @@ class FolderShareAuthHandler(BaseHandler):
         else:
             self.set_status(400)
             self.write(dict(error=dict(message=errorMessage,code=errorCode)))
-            #logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
+            logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
+
+    def subscribe_shared_folder(self, account, sharing_dict):
+        errorMessage = ""
+        errorCode = 0
+        is_pass_check = False
+
+        if not sharing_dict is None:
+            poolid = sharing_dict['poolid']
+            is_pass_check, localpoolname = self.get_not_conflict_poolname(account, sharing_dict['poolname'])
+            if is_pass_check:
+                can_edit = sharing_dict['can_edit']
+                pool_subscriber_dbo = DboPoolSubscriber(self.application.sql_client)
+                status = dbconst.POOL_STATUS_SHARED_ACCEPTED
+
+                if not pool_subscriber_dbo.is_pool_subscribed(account, poolid):
+                    is_pass_check = pool_subscriber_dbo.add(account, poolid, localpoolname, can_edit, status)
+                    if not is_pass_check:
+                        errorMessage = "Subscribe pool_subscriber fail"
+                        errorCode = 1032
+                else:
+                    errorMessage = "subscribed"
+                    errorCode = 1050
+            else:
+                errorMessage = "too many conflict name"
+                errorCode = 1033
+        else:
+            errorMessage = "sharing info is wrong"
+            errorCode = 1031
+
+        return is_pass_check, errorMessage, errorCode
+
+    def get_not_conflict_poolname(self, account, path):
+        ret = False
+        new_path = path
+        pool_dbo = DboPool(self.application.sql_client)
+        current_user = {'account': account, 'poolid': pool_dbo.get_root_pool(account)}
+        metadata_manager = MetaManager(self.application.sql_client, current_user, new_path)
+        if not metadata_manager.get_path() is None:
+            for i in range(100000):
+                new_path = "%s(%d)" % (path, i)
+                metadata_manager.init_with_path(current_user, new_path)
+                if metadata_manager.get_path() is None:
+                    #bingo
+                    ret = True
+                    break
+        else:
+            #bingo
+            ret = True
+
+        return ret, new_path
 
     def call_folder_sharing_confirm_api(self, share_code, request_id):
         api_reg_pattern = "1/repo/share/confirm_folder"

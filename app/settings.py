@@ -16,8 +16,8 @@ def define_app_options():
     define('log_level', default=logging.INFO)
     define('log_backup_path', default=tempfile.gettempdir())
     
-    define('versionCode', 3)
-    define('versionName', "1.2")
+    define('versionCode', 4)
+    define('versionName', "1.3")
 
     default_port = 443
     define('port', default_port)
@@ -25,7 +25,7 @@ def define_app_options():
     default_streaming_port = 80
     define('streaming_port', default_streaming_port)
 
-    database_schema_version = 1
+    database_schema_version = 2
     define('database_schema_version', database_schema_version)
 
     basis = ""
