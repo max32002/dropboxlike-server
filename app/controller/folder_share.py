@@ -406,7 +406,7 @@ class FolderShareAuthHandler(BaseHandler):
         else:
             self.set_status(400)
             self.write(dict(error=dict(message=errorMessage,code=errorCode)))
-            logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
+            #logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
 
     def subscribe_shared_folder(self, account, sharing_dict):
         errorMessage = ""

@@ -58,7 +58,7 @@ class MetadataHandler(BaseHandler):
                     is_pass_check = False
 
         if is_pass_check:
-            logging.info('path %s' % (path))
+            #logging.info('path %s' % (path))
             self.metadata_manager = MetaManager(self.application.sql_client, self.current_user, path)
 
             if not self.metadata_manager.real_path is None:
