@@ -2,9 +2,10 @@
 import os
 from PIL import Image, ImageChops, ImageOps
 from tornado.options import options
+from tornado import gen
 import logging
 
-thumbnail_size_list=[(32,32),(64,64),(128,128),(640,480),(1024,768)]
+thumbnail_size_list=[(64,64),(128,128),(32,32),(640,480),(1024,768)]
 
 _orientation_to_rotation = {
     3: 180,
@@ -27,7 +28,6 @@ _formats_to_pil = {
     "webp": "WEBP",
     "tiff": "TIFF"
 }
-
 
 # todo: 
 #   my doc_id may conflict(duplicate) between different pool. 
@@ -125,17 +125,24 @@ def _deletePath(real_path):
                 shutil.rmtree(os.path.join(root, d))
         shutil.rmtree(real_path)
 
+@gen.coroutine
 def _generateThumbnails(src_file, doc_id):
+    #import time
     if isSupportedFormat(src_file):
         filename, file_extension = os.path.splitext(src_file)
         thumbnail_folder = getThumbnailFolder(doc_id)
         for w,h in thumbnail_size_list:
+            #time.sleep(2)
+            yield gen.moment
+            #yield gen.sleep(1)
             filename = "w%sh%s%s" % (str(w), str(h),file_extension)
             thumbnail_path = os.path.join(thumbnail_folder,filename)
             #logging.info("generateThumbnails at path: %s ... ", thumbnail_path)
             ret = makeThumb(src_file,thumbnail_path,size=(w,h),pad=True)
             if not ret:
                 break
+            yield gen.sleep(50)
+
 
 def _getThumbnailPath(doc_id, size_name, file_extension):
     thumbnail_folder = getThumbnailFolder(doc_id)
@@ -167,9 +174,14 @@ def prepareThumbnailsFolder(f_out):
         except OSError as exc: 
             pass
 
+#@gen.coroutine
 def makeThumb(f_in, f_out, size=(64,64), pad=False):
     ret = False
     image = None
+
+    #logging.info("start sleep thumbnail(%d): %s" % (size[0],f_in))
+    #yield gen.sleep(50)
+    #logging.info("after sleep (%d): %s" % (size[0],f_in))
 
     if os.path.exists(f_in):
         #logging.info("makeThumb thumbnails at real_path: %s to %s ... ", f_in, f_out)

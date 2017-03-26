@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+#encoding=utf-8
+
 from tornado.options import options
 import logging
 from app.dbo.thumbnail import DboThumbnail
@@ -5,7 +8,6 @@ import sqlite3
 from app.lib import thumbnail
 
 class ThumbnailManager():
-    '''!Thumbnail API Controller'''
     dbo_thumbnail = None
 
     def __init__(self, thumbnail_conn):

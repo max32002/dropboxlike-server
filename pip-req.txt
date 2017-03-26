@@ -1,5 +1,5 @@
-Jinja2==2.8
 tornado==4.4.2
 six==1.10.0
-#Starting from version 3.0.0 Pillow needs libjpeg.
 pillow==2.9.0
+netifaces==0.10.5
+websocket-client==0.37.0

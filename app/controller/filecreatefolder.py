@@ -55,10 +55,15 @@ class FileCreateFolderHandler(BaseHandler):
         if is_pass_check:
             self.metadata_manager = MetaManager(self.application.sql_client, self.current_user, path)
 
-            if os.path.exists(self.metadata_manager.real_path):
-                # path exist
-                errorMessage = "path is exist"
-                errorCode = 1020
+            if not self.metadata_manager.real_path is None:
+                if os.path.exists(self.metadata_manager.real_path):
+                    # path exist
+                    errorMessage = "path is exist"
+                    errorCode = 1020
+                    is_pass_check = False
+            else:
+                errorMessage = "no permission"
+                errorCode = 1030
                 is_pass_check = False
 
         current_metadata = None

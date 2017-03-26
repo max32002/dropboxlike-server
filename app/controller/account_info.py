@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+#encoding=utf-8
+
 from app.handlers import BaseHandler
 from tornado.options import options
 import logging
@@ -6,7 +9,6 @@ from app.lib import utils
 from app.controller.meta_manager import MetaManager
 
 class AccountUsageHandler(BaseHandler):
-    ''' Acount Info API Controller'''
     metadata_manager = None
 
     def post(self):

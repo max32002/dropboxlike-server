@@ -16,6 +16,7 @@ from app.dbo.schema_version import DboSchemaVersion
 
 #import settings
 import app.repoconfig
+import app.file_manager
 
 from handlers import MyErrorHandler
 
@@ -26,8 +27,6 @@ class MaxDropboxLikeWeb(object):
 
         parse_command_line(final=True)
 
-        self_dir_path = os.path.abspath(os.path.join(os.path.dirname(__file__),".."))
-
         return {
             'default_handler_class': MyErrorHandler,
             'default_handler_args': dict(status_code=404),
@@ -35,7 +34,7 @@ class MaxDropboxLikeWeb(object):
             'claimed': claimed
         }
 
-    def __init__(self, routes, template_path, proj_static_paths=[],
+    def __init__(self, routes, routes_http, template_path=None, proj_static_paths=[],
                  **more_settings):
         the_settings = self.get_settings(template_path, proj_static_paths)
         the_settings.update(more_settings)
@@ -43,6 +42,14 @@ class MaxDropboxLikeWeb(object):
         self.app = Application(routes, **the_settings)
         self.app.sql_client = self.setup_db()
         self.app.claimed = the_settings['claimed']
+        if self.app.claimed:
+            app.file_manager.travel(self.app.sql_client)
+            
+        self.app_http = Application(routes_http, **the_settings)
+        self.app_http.sql_client = self.setup_db()
+        # Why should set True? because the shared code I don't want to rewite...
+        self.app_http.claimed = True
+
 
     def setup_db(self):
         #logging.info("connecting to database %s ...", options.sys_db)
@@ -57,14 +64,17 @@ class MaxDropboxLikeWeb(object):
         claimed_status = "unclaimed"
         if self.app.claimed:
             claimed_status = "claimed"
-        logging.info('Runing %s dropboxlike at port %s, press Ctrl+C to stop.', claimed_status, options.port)
-        server = HTTPServer(self.app, xheaders=True, ssl_options = {
+        logging.info('Runing %s Dropboxlike Server v%s at port %d, streaming port %d, press Ctrl+C to stop.', claimed_status, options.versionName, options.port, options.streaming_port)
+        
+        server_http = HTTPServer(self.app_http, xheaders=True)
+
+        server_https = HTTPServer(self.app, xheaders=True, ssl_options = {
     "certfile": os.path.join(options.certificate_path, "server.crt"),
     "keyfile": os.path.join(options.certificate_path, "server.key"),
 })
         is_listening = False
         try:
-            server.listen(options.port)
+            server_https.listen(options.port)
             is_listening = True
         except Exception as error:
             #print("Error: {}".format(error))
@@ -73,10 +83,10 @@ class MaxDropboxLikeWeb(object):
 
                 if _platform == "linux" or _platform == "linux2":
                    # linux
-                   logging.error("Because of permission issue, you need run script by: sudo python start.py")
+                   logging.error("Because of permission issue, you need run script by: 'sudo ./start' or 'sudo python start.py'")
                 elif _platform == "darwin":
                    # MAC OS X
-                   logging.error("Because of permission issue, you need run script by: sudo python start.py")
+                   logging.error("Because of permission issue, you need run script by: 'sudo ./start' or 'sudo python start.py'")
                 elif _platform == "win32":
                    # Windows
                    logging.error("you need run script as administrator")
@@ -84,9 +94,34 @@ class MaxDropboxLikeWeb(object):
                 #raise
                 print("Error: {}".format(error))
                 pass
+
+        if is_listening:
+            is_listening = False
+            try:
+                server_http.listen(options.streaming_port)
+                is_listening = True
+            except Exception as error:
+                #print("Error: {}".format(error))
+                if "{}".format(error)=="[Errno 13] Permission denied":
+                    from sys import platform as _platform
+
+                    if _platform == "linux" or _platform == "linux2":
+                       # linux
+                       logging.error("Because of permission issue, you need run script by: 'sudo ./start' or 'sudo python start.py'")
+                    elif _platform == "darwin":
+                       # MAC OS X
+                       logging.error("Because of permission issue, you need run script by: 'sudo ./start' or 'sudo python start.py'")
+                    elif _platform == "win32":
+                       # Windows
+                       logging.error("you need run script as administrator")
+                else:
+                    #raise
+                    print("Error: {}".format(error))
+                    pass
+
         
         if is_listening:
-            install_tornado_shutdown_handler(IOLoop.instance(), server)
+            install_tornado_shutdown_handler(IOLoop.instance(), server_https)
             logging.info('Good to go!')
 
             IOLoop.instance().start()

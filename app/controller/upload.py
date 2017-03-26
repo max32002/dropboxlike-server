@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-#fileencoding=utf-8
+#encoding=utf-8
 
 from app.handlers import BaseHandler
 import tornado.web
 import logging
 from app.lib import data_file
-from app.lib import misc
 from app.lib import utils
 import json
 from app.controller.meta_manager import MetaManager
@@ -84,36 +83,36 @@ class UploadHandler(BaseHandler):
             self.metadata_manager = MetaManager(self.application.sql_client, self.current_user, path)
 
         if is_pass_check:
-            logging.info('Upload to real path at:%s' % (self.metadata_manager.real_path))
+            if not self.metadata_manager.can_edit:
+                errorMessage = "no write premission"
+                errorCode = 1020
+                is_pass_check = False
+
+        if is_pass_check:
+            logging.info(u'Upload to real path at:%s' % (self.metadata_manager.real_path))
             is_pass_check = self._saveFile(self.metadata_manager.real_path, self.request.body)
 
             # update metadata. (owner)
-            if os.path.exists(self.metadata_manager.real_path):
-                if not client_modified is None:
-                    is_pass_check, errorMessage = self._updateMtimeToFile(self.metadata_manager.real_path, client_modified)
-                    if not is_pass_check:
-                        errorCode = 1022
-
-                size=os.stat(self.metadata_manager.real_path).st_size
-                #print "size",size
-                rev=None
-                content_hash=misc.md5_file(self.metadata_manager.real_path)
-                #print "content_hash",content_hash
-
-                check_metadata = self.metadata_manager.get_path()
-                if check_metadata is None:
-                    is_pass_check, query_result, errorMessage = self.metadata_manager.add_metadata(size=size, content_hash=content_hash, client_modified=client_modified)
+            if not self.metadata_manager.real_path is None:
+                if os.path.isfile(self.metadata_manager.real_path):
+                    if not client_modified is None:
+                        is_pass_check, errorMessage = self._updateMtimeToFile(self.metadata_manager.real_path, client_modified)
+                        if not is_pass_check:
+                            errorCode = 1022
                 else:
-                    is_pass_check, query_result, errorMessage = self.metadata_manager.move_metadata(self.metadata_manager.poolid, self.metadata_manager.db_path, size=size, content_hash=content_hash, client_modified=client_modified)
-        
-        query_result = None
-
-        if is_pass_check:
-            query_result = self.metadata_manager.get_path()
-            if query_result is None:
-                errorMessage = "add metadata in database fail"
-                errorCode = 1023
+                    errorMessage = "save file to server fail"
+                    errorCode = 1023
+            else:
+                errorMessage = "no permission"
+                errorCode = 1030
                 is_pass_check = False
+
+        query_result = None
+        if is_pass_check:
+            is_pass_check, query_result, errorMessage = self.metadata_manager.add_metadata_from_file()
+            if not is_pass_check:
+                errorMessage = "add metadata in database fail"
+                errorCode = 1024
 
         if is_pass_check:
             self.write(query_result)

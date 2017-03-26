@@ -26,6 +26,14 @@ if __name__ == "__main__":
         (r'/1/files/download', 'app.controller.DownloadHandler'),
         (r'/1/files/get_thumbnail', 'app.controller.ThumbnailHandler'),
 
+        # share repo
+        (r'/1/sharing/create_shared_repo', 'app.controller.RepoShareCreateHandler'),
+        (r'/1/repo/auth_shared_repo', 'app.controller.RepoShareAuthHandler'),
+        # share folder
+        (r'/1/sharing/create_shared_folder', 'app.controller.FolderShareCreateHandler'),
+        (r'/1/repo/auth_shared_folder', 'app.controller.FolderShareAuthHandler'),
+        (r'/1/sharing/unshare_folder', 'app.controller.FolderUnshareHandler'),
+
         # [TODO]: for streaming
         (r'/1/files/get_temporary_link', 'app.controller.MetadataHandler'),
 
@@ -37,10 +45,12 @@ if __name__ == "__main__":
         (r'/1/users/get_space_usage', 'app.controller.AccountUsageHandler'),
         (r'/1/users/security_question', 'app.controller.AccountSecurityQuestionHandler'),
         # [TODO]:
-        (r'/1/favorite', 'app.controller.FavoriteHandler'),
+        #(r'/1/favorite', 'app.controller.FavoriteHandler'),
         ]
 
-    template_path = os.path.abspath(os.path.join(os.path.dirname(__file__) , 'templates'))
-    server = MaxDropboxLikeWeb(routes,template_path)
+    routes_http = [
+        (r'/server_info', 'app.controller.VersionHandler'),
+        ]
+    server = MaxDropboxLikeWeb(routes, routes_http)
     
     server.run()

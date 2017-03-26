@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-#fileencoding=utf-8
+#encoding=utf-8
 
 from app.handlers import BaseHandler
 import tornado.web
 import logging
 from app.lib import data_file
-from app.lib import misc
 from app.lib import utils
 from tornado.options import options
 import json
@@ -169,60 +168,63 @@ class UploadSessionHandler(BaseHandler):
                 if not is_pass_check:
                     errorCode = 1012
 
+        # start to output.
+        query_result = {"session_id": session_id}
+
         if self.action == "SessionFinish":
             if is_pass_check:
-                if os.path.exists(self.metadata_manager.real_path):
-                    # [TODO]: to Overwrite(with new revision) or autorename
+                if not self.metadata_manager.can_edit:
+                    errorMessage = "no write premission"
+                    errorCode = 1020
+                    is_pass_check = False
 
-                    # need implement a revision feature.
-                    # need move target to versions folder.
-                    try:
-                        os.unlink(self.metadata_manager.real_path)
-                    except Exception as error:
-                        errorMessage = "{}".format(error)
-                        logging.error(errorMessage)
-                        pass
+            if is_pass_check:
+                if not self.metadata_manager.real_path is None:
+                    if os.path.exists(self.metadata_manager.real_path):
+                        # [TODO]: to Overwrite(with new revision) or autorename
+
+                        # need implement a revision feature.
+                        # need move target to versions folder.
+                        try:
+                            os.unlink(self.metadata_manager.real_path)
+                        except Exception as error:
+                            errorMessage = "{}".format(error)
+                            logging.error(errorMessage)
+                            pass
+                    else:
+                        # MUST make sure folder exist, else move will fail.
+                        head, tail = os.path.split(self.metadata_manager.real_path)
+                        self._createFolder(head)
+
+                    import shutil
+                    shutil.move(session_real_path, self.metadata_manager.real_path)
                 else:
-                    # MUST make sure folder exist, else move will fail.
-                    head, tail = os.path.split(self.metadata_manager.real_path)
-                    self._createFolder(head)
+                    errorMessage = "no permission"
+                    errorCode = 1030
+                    is_pass_check = False
 
-                import shutil
-                shutil.move(session_real_path, self.metadata_manager.real_path)
 
                 is_pass_check = self.dbo_chunk_upload.pk_delete(session_id)
                 if not is_pass_check:
                     errorMessage = "remove upload session info fail."
-                    errorCode = 1020
+                    errorCode = 1040
 
             if is_pass_check:
                 # update metadata. (owner)
-                if os.path.exists(self.metadata_manager.real_path):
+                if os.path.isfile(self.metadata_manager.real_path):
                     is_pass_check, errorMessage = self._updateMtimeToFile(self.metadata_manager.real_path, client_modified)
                     if not is_pass_check:
-                        errorCode = 1022
+                        errorCode = 1042
+                else:
+                    errorMessage = "save file to server fail"
+                    errorCode = 1043
 
-                    size=os.stat(self.metadata_manager.real_path).st_size
-                    #print "size",size
-                    rev=None
-                    content_hash=misc.md5_file(self.metadata_manager.real_path)
-                    #print "content_hash",content_hash
-
-                    check_metadata = self.metadata_manager.get_path()
-                    if check_metadata is None:
-                        is_pass_check, query_result, errorMessage = self.metadata_manager.add_metadata(size=size, content_hash=content_hash, client_modified=client_modified)
-                    else:
-                        is_pass_check, query_result, errorMessage = self.metadata_manager.move_metadata(self.metadata_manager.poolid, self.metadata_manager.db_path, size=size, content_hash=content_hash, client_modified=client_modified)
-
-        # start to output.
-        query_result = {"session_id": session_id}
-        if self.action == "SessionFinish":
+            query_result = None
             if is_pass_check:
-                query_result = self.metadata_manager.get_path()
-                if query_result is None:
+                is_pass_check, query_result, errorMessage = self.metadata_manager.add_metadata_from_file()
+                if not is_pass_check:
                     errorMessage = "add metadata in database fail"
-                    errorCode = 1023
-                    is_pass_check = False
+                    errorCode = 1044
 
         if is_pass_check:
             if not query_result is None:

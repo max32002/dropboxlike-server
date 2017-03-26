@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #encoding=utf-8
 import os
-#import logging
+import logging
 import sqlite3
 from dbo.repo import DboRepo
 from dbo.pincode import DboPincode
@@ -55,7 +55,7 @@ def repo_register(repo_dbo, pincode_dbo):
             # for short-pincode & changeable & GUI support sultion.
             #repo_query(repo_dbo, pincode_dbo, pincode, sn, pooling_flag=True)
         else:
-            print "unknow error, return json empty!"
+            #print "unknow error(%d), return:%s" % (http_code, json_obj)
             pass
     else:
         #print "server is not able be connected or cancel by user"
@@ -94,10 +94,8 @@ def call_repo_register_api():
             try :
                 json_obj = json.loads(new_html_string)
             except ValueError as err:  # includes simplejson.decoder.JSONDecodeError
-                #print('except:%s' % (str(err)))
                 json_obj = None
             except Exception as err:
-                #print('except:%s' % (str(err)))
                 json_obj = None
     return http_code,json_obj
 
@@ -146,7 +144,7 @@ def repo_update(repo_token):
                 """
                 pass
         else:
-            print "unknow error, return json empty!"
+            #print "unknow error(%d), return:%s" % (http_code, json_obj)
             pass
     else:
         #print "server is not able be connected or cancel by user"
@@ -198,7 +196,7 @@ def repo_query(pincode, sn, pooling_flag=False):
                 """
                 pass
         else:
-            print "unknow error, return json empty!"
+            #print "unknow error(%d), return:%s" % (http_code, json_obj)
             pass
     else:
         #print "server is not able be connected or cancel by user"
@@ -239,10 +237,8 @@ def call_repo_query_api(pincode, sn):
             try :
                 json_obj = json.loads(new_html_string)
             except ValueError as err:  # includes simplejson.decoder.JSONDecodeError
-                #print('except:%s' % (str(err)))
                 json_obj = None
             except Exception as err:
-                #print('except:%s' % (str(err)))
                 json_obj = None
     return http_code,json_obj
 
@@ -258,21 +254,19 @@ def call_claimed_repo_update_api(repo_token):
     http_obj = libHttp.Http()
     (new_html_string, http_code) = http_obj.get_http_response_core(api_url, data=json_body)
     json_obj = None
+    #print "server code: %d" % (http_code,)
+    #print "server message: %s" % (new_html_string,)
     if http_code==200:
         # direct read the string to json.
         json_obj = json.loads(new_html_string)
     else:
-        #print "server return error code: %d" % (http_code,)
-        #print "server return error message: %s" % (new_html_string,)
         if http_code==400:
             json_obj = None
             try :
                 json_obj = json.loads(new_html_string)
             except ValueError as err:  # includes simplejson.decoder.JSONDecodeError
-                #print('except:%s' % (str(err)))
                 json_obj = None
             except Exception as err:
-                #print('except:%s' % (str(err)))
                 json_obj = None
     return http_code,json_obj
 
@@ -289,19 +283,13 @@ def display_pincode_to_user(pincode, minutes=None, serialnumber=None):
             message += ".\n"
         print message
 
-
 def prepare_reg_json_body():
     import socket
     computerName = socket.gethostname()
-    localIp = socket.gethostbyname(socket.gethostname())
-
-    from uuid import getnode as get_mac
-    mac = get_mac()
-    mac_formated = ':'.join(("%012X" % mac)[i:i+2] for i in range(0, 12, 2))
-
-    data = {'title':computerName,'localIp':localIp, 'port':options.port, 'mac': mac_formated, 'client_version':options.versionCode}
+    localIp = misc.get_ip_address()
+    mac_formated = misc.get_mac()
+    data = {'title':computerName,'localIp':localIp, 'port':options.port, 'streaming_port':options.streaming_port, 'mac': mac_formated, 'client_version':options.versionCode}
     return data
-
 
 def generate_pincode():
     ret = False
@@ -360,11 +348,11 @@ def generate_pincode():
                         is_need_terminate_message = "Can't connect to dropboxlike register server, please try again later"
 
             except sqlite3.OperationalError as error:
-                print("{}.  Please try use add sudo to retry.".format(error))
+                logging.error("{}.  Please try use add sudo to retry.".format(error))
                 is_need_terminate_app = True
                 #if "{}".format(error)=="[Errno 13] Permission denied":
             except Exception as error:
-                print("{}".format(error))
+                logging.error("{}".format(error))
                 raise
 
         else:
@@ -400,11 +388,11 @@ def generate_pincode():
             
             pass
     except sqlite3.OperationalError as error:
-        print("{}.  Please try use add sudo to retry.".format(error))
+        logging.error("{}.  Please try use add sudo to retry.".format(error))
         is_need_terminate_app = True
         #if "{}".format(error)=="[Errno 13] Permission denied":
     except Exception as error:
-        print("{}".format(error))
+        logging.error("{}".format(error))
         raise
 
     if is_need_terminate_app:
@@ -458,15 +446,16 @@ def write_properties(filename, dictionary, delimiter=':'):
 def read_config_file(path):
     ret = True
 
-    config = {'__file__': os.path.abspath(path)}
+    config_path = os.path.abspath(path)
+    config = {'__file__': config_path}
     new_body = ""
+    #print "read config at path:", config_path
     with open(path, 'rb') as f:
         try:
             exec_in(native_str(f.read()), config, config)
         except Exception as error:
-            #print("Error: {}".format(error))
             ret = False
-            print("Read config file Error: " + path)
+            logging.error("Read config file Error: " + path)
             #raise Exception("Parse config file Error: {}".format(error))
 
     return ret, config
@@ -495,10 +484,10 @@ def write_config_file(path, config):
                 text_file.write(new_body)
         except IOError:
             ret = False
-            print("Write config file Error: " + path)
+            logging.error("Write config file Error: " + path)
     else:
         ret = False
-        print 'Config file is empty!'
+        logging.error('Config file is empty!')
 
     return ret
 
@@ -517,6 +506,20 @@ def load_config_file():
             pass
 
         ret = write_config_file(CONFIG_FILENAME, config)
+        if not ret:
+            from sys import platform as _platform
+
+            if _platform == "linux" or _platform == "linux2":
+               # linux
+               logging.error("Because of permission issue, you need run script by: 'sudo ./start' or 'sudo python start.py'")
+            elif _platform == "darwin":
+               # MAC OS X
+               logging.error("Because of permission issue, you need run script by: 'sudo ./start' or 'sudo python start.py'")
+            elif _platform == "win32":
+               # Windows
+               logging.error("you need run script as administrator")
+            sys.exit()
+
 
     return ret
 

@@ -40,24 +40,45 @@ CREATE TABLE IF NOT EXISTS `users` (
     # return:
     #       True: insert successfully.
     #       False: fail
-    def new_user( self, is_owner ):
+    def new_user( self, is_owner, account_sn=None ):
         account = utils.get_token()
         while self.pk_exist(account):
             account = utils.get_token()
         password = utils.get_token()
-        ret = self.save(account, password, is_owner)
+        ret = self.save(account, password, is_owner, account_sn=account_sn)
         return ret, account, password
 
+    # return: is server owner
+    def is_owner( self, account):
+        sql = 'SELECT account FROM users WHERE account=? and is_owner=1'
+        cursor = self.conn.execute(sql, (account,))
+        ret=False
+        for row in cursor:
+            ret=True
+        return ret
+
+    # return: is server owner
+    def is_account_sn_exist( self, account_sn):
+        account = None
+        password = None
+        sql = 'SELECT account,password FROM users WHERE account_sn=? LIMIT 1'
+        cursor = self.conn.execute(sql, (account_sn,))
+        ret=False
+        for row in cursor:
+            ret=True
+            account = row[0]
+            password = row[1]
+        return ret, account, password
 
     # return:
     #       True: insert successfully.
     #       False: fail
-    def save( self, account, password, is_owner ):
+    def save( self, account, password, is_owner, account_sn=None):
         result = False
         try:
             # start to insert.
-            sql = "INSERT INTO users(account,password,is_owner) VALUES (?,?,?)"
-            self.conn.execute(sql, (account, password, is_owner,))
+            sql = "INSERT INTO users(account,password,is_owner,account_sn) VALUES (?,?,?,?)"
+            self.conn.execute(sql, (account, password, is_owner, account_sn))
             self.conn.commit()
             result = True
         except Exception as error:
