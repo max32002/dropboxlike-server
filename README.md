@@ -5,15 +5,17 @@
 
 ## Getting Started
 
-Make sure you have successfully installed Python 2.7
+Run standalong application:
+
+https://github.com/max32002/dropboxlike-server/releases
+
+
+Run with python source code, make sure you have successfully installed Python 2.7
 ```
 pip install -r pip-req.txt
 python start.py
 ```
 
- If you like to run standalone application, you can found in our release:
-
-https://github.com/max32002/dropboxlike-server/releases
 
 
 
