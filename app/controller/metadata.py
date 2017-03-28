@@ -17,7 +17,9 @@ class MetadataHandler(BaseHandler):
         errorMessage = ""
         errorCode = 0
 
+        _body = None
         if is_pass_check:
+            #logging.info('%s' % (str(self.request.body)))
             is_pass_check = False
             try :
                 _body = json.loads(self.request.body)
@@ -58,7 +60,7 @@ class MetadataHandler(BaseHandler):
                     is_pass_check = False
 
         if is_pass_check:
-            logging.info('path %s' % (path))
+            #logging.info('path %s' % (path))
             self.metadata_manager = MetaManager(self.application.sql_client, self.current_user, path)
 
             if not self.metadata_manager.real_path is None:

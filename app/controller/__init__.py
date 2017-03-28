@@ -33,3 +33,8 @@ from app.controller.repo_share import RepoShareAuthHandler
 from app.controller.folder_share import FolderShareCreateHandler
 from app.controller.folder_share import FolderShareAuthHandler
 from app.controller.folder_share import FolderUnshareHandler
+
+# for temp_link
+from app.controller.temp_link import GetTempLinkHandler
+from app.controller.temp_link import ViewTempLinkHandler
+

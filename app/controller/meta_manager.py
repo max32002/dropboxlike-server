@@ -395,7 +395,7 @@ class MetaManager():
         db_path = metadata['path']
         if doc_id > 0 and dir_type=="file":
             real_path = os.path.join(self.poolstorage, db_path[1:])
-            logging.info(u"add thumbnal for file: %s", real_path)
+            #logging.info(u"add thumbnal for file: %s", real_path)
             thumbnail._generateThumbnails(real_path, doc_id)
         else:
             # recursively scan subfolder for copy API.
@@ -431,7 +431,7 @@ class MetaManager():
                 client_modified = 0
         return client_modified
 
-    def add_metadata_from_file(self):
+    def add_metadata_from_file(self, skip_content_hash_check=False):
         # only user misc at here.
         from app.lib import misc
 
@@ -441,20 +441,39 @@ class MetaManager():
 
         real_path = self.real_path
         #print "real_path:", real_path
+        #logging.info("start to check file:" + real_path)
         if os.path.isfile(real_path):
-            client_modified = self._getMtimeFromFile(real_path)
-            size=os.stat(real_path).st_size
-            #print "size",size
+            # TODO: reversion control.
             rev=None
-            content_hash=misc.md5_file(real_path)
-            #print "content_hash",content_hash
 
             check_metadata = self.get_path()
             if check_metadata is None:
-                print "start to add file to metadata database:", real_path
+                client_modified = self._getMtimeFromFile(real_path)
+                size=os.stat(real_path).st_size
+                content_hash=misc.md5_file(real_path)
                 is_pass_check, query_result, errorMessage = self.add_metadata(size=size, content_hash=content_hash, client_modified=client_modified)
             else:
-                if size != check_metadata['size'] or content_hash != check_metadata['content_hash']:
+                client_modified = self._getMtimeFromFile(real_path)
+                size=os.stat(real_path).st_size
+                content_hash = None
+
+                is_need_to_update = False
+                if not is_need_to_update:
+                    if long(size) != long(check_metadata['size']):
+                        is_need_to_update = True
+                if not is_need_to_update:
+                    if long(client_modified) != long(check_metadata['client_modified']):
+                        is_need_to_update = True
+
+                if not is_need_to_update:
+                    if not skip_content_hash_check:
+                        content_hash=misc.md5_file(real_path)
+                        if content_hash != check_metadata['content_hash']:
+                            is_need_to_update = True
+
+                if is_need_to_update:
+                    if content_hash is None:
+                        content_hash=misc.md5_file(real_path)
                     is_pass_check, query_result, errorMessage = self.move_metadata(self.poolid, self.db_path, size=size, content_hash=content_hash, client_modified=client_modified)
                 else:
                     # the same, skip update

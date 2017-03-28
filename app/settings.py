@@ -16,8 +16,8 @@ def define_app_options():
     define('log_level', default=logging.INFO)
     define('log_backup_path', default=tempfile.gettempdir())
     
-    define('versionCode', 4)
-    define('versionName', "1.3")
+    define('versionCode', 5)
+    define('versionName', "1.4")
 
     default_port = 443
     define('port', default_port)
@@ -44,7 +44,7 @@ def define_app_options():
     sys_db = os.path.join(options.storage_access_point, 'dropboxlike.db')
     define('sys_db', default=sys_db)
 
-    define('ignore_token_check_prefix', default=['/1/auth/','/server_info','/1/repo/auth_shared_repo','/1/repo/auth_shared_folder','/download/'])
+    define('ignore_token_check_prefix', default=['/1/auth/','/server_info','/1/repo/auth_shared_repo','/1/repo/auth_shared_folder','/download/','/apitl/'])
     define('claim_uri_prefix', default=['/1/repo/claim_auth'])
     define('api_hostname', 'api.dropboxlike.com')
     #define('api_hostname', '127.0.0.1')

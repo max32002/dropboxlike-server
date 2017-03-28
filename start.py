@@ -35,7 +35,7 @@ if __name__ == "__main__":
         (r'/1/sharing/unshare_folder', 'app.controller.FolderUnshareHandler'),
 
         # [TODO]: for streaming
-        (r'/1/files/get_temporary_link', 'app.controller.MetadataHandler'),
+        (r'/1/files/get_temporary_link', 'app.controller.GetTempLinkHandler'),
 
         # merge to /1/files/list_folder with new parament.
         #(r'/1/delta', 'app.controller.DeltaHandler'),
@@ -50,6 +50,7 @@ if __name__ == "__main__":
 
     routes_http = [
         (r'/server_info', 'app.controller.VersionHandler'),
+        (r'/apitl/1/(.*)', 'app.controller.ViewTempLinkHandler'),
         ]
     server = MaxDropboxLikeWeb(routes, routes_http)
     

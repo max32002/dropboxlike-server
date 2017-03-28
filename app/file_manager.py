@@ -12,8 +12,11 @@ from dbo.metadata import DboMetadata
 from controller.meta_manager import MetaManager
 
 def travel(sql_client):
+    #logging.info("start to travel metadata...")
     travel_metadata(sql_client)
+    #logging.info("start to travel disk file...")
     travel_disk(sql_client)
+    #logging.info("travel task done...")
 
 def travel_metadata(sql_client):
     #print("start to travel metadata")
@@ -95,7 +98,7 @@ def list_files(startpath, metadata_manager, current_user):
             #print file_db_path
             init_ret = metadata_manager.init_with_path(current_user,file_db_path,check_shared_pool=False)
             if init_ret:
-                metadata_manager.add_metadata_from_file()
+                metadata_manager.add_metadata_from_file(skip_content_hash_check=True)
             else:
                 print u"file was not add to database, because file path is in shared folder: " + file_db_path
                 
