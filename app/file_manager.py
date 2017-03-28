@@ -12,11 +12,11 @@ from dbo.metadata import DboMetadata
 from controller.meta_manager import MetaManager
 
 def travel(sql_client):
-    logging.info("start to travel metadata...")
+    #logging.info("start to travel metadata...")
     travel_metadata(sql_client)
-    logging.info("start to travel disk file...")
+    #logging.info("start to travel disk file...")
     travel_disk(sql_client)
-    logging.info("travel task done...")
+    #logging.info("travel task done...")
 
 def travel_metadata(sql_client):
     #print("start to travel metadata")
