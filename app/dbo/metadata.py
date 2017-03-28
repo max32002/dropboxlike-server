@@ -11,7 +11,7 @@ import sqlite3
 class DboMetadata(BaseTable):
     sql_return_fields = "doc_id,poolid,path,content_hash,rev,size,is_dir,parent,name,client_modified,server_modified,editor,owner"
     sql_table_name = "metadata"
-    sql_primary_key = "path"
+    sql_primary_key = "doc_id"
     sql_create_table = '''
 CREATE TABLE IF NOT EXISTS `metadata` (
     `doc_id`    INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
