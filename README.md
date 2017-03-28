@@ -16,7 +16,10 @@ pip install -r pip-req.txt
 python start.py
 ```
 
+## Build your app on the Dropboxlike platform
 
+The Dropboxlike API v1 is a set of HTTP endpoints that help your app to work with files in Dropboxlike, including advanced functionality like thumbnails, and sharing. Let's get started making API calls.
+http://dropboxlike.com/en/developer/dropboxlike-api-v1/
 
 
 ## License
