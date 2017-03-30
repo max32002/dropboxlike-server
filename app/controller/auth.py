@@ -71,6 +71,7 @@ class AuthHandler(BaseHandler):
                     errorCode = 1013
                     is_pass_check = False
 
+        # TODO: need a log to avoid bruce-force attach here.
                     
         if is_pass_check:
             is_pass_check = auth_dbo.login(account, password)
