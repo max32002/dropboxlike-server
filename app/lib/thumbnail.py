@@ -5,7 +5,9 @@ from tornado.options import options
 from tornado import gen
 import logging
 
-thumbnail_size_list=[(64,64),(128,128),(32,32),(640,480),(1024,768)]
+#thumbnail_size_list=[(64,64),(128,128),(32,32),(640,480),(1024,768)]
+#TOOD:We need a queue to resize more size.
+thumbnail_size_list=[(64,64)]
 
 _orientation_to_rotation = {
     3: 180,
@@ -141,7 +143,8 @@ def _generateThumbnails(src_file, doc_id):
             ret = makeThumb(src_file,thumbnail_path,size=(w,h),pad=True)
             if not ret:
                 break
-            yield gen.sleep(50)
+            #we need a queue to resize more size.
+            #yield gen.sleep(50)
 
 
 def _getThumbnailPath(doc_id, size_name, file_extension):
