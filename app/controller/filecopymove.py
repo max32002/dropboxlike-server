@@ -91,7 +91,7 @@ class FileCopyMoveHandler(BaseHandler):
                 is_pass_check = False
                 
         if is_pass_check:
-            if to_path.startswith(from_path):
+            if to_path.startswith(from_path + '/'):
                 errorMessage = "duplicated_or_nested_paths"
                 errorCode = 1014
                 is_pass_check = False
@@ -169,7 +169,10 @@ class FileCopyMoveHandler(BaseHandler):
                     errorCode = 1025
                     is_pass_check = False
 
-        from_shared_folder_pool_array = self.from_metadata_manager.contain_pool_array()
+        from_shared_folder_pool_array = []
+        if is_pass_check:
+            self.from_metadata_manager.contain_pool_array()
+
         #print "from_shared_folder_pool_array", from_shared_folder_pool_array
         #self.application.sql_client.isolation_level = None
         if is_pass_check:
