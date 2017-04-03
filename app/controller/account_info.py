@@ -11,6 +11,9 @@ from app.controller.meta_manager import MetaManager
 class AccountUsageHandler(BaseHandler):
     metadata_manager = None
 
+    def get(self):
+        return self.post()
+
     def post(self):
         self.set_header('Content-Type','application/json')
 
@@ -23,12 +26,13 @@ class AccountUsageHandler(BaseHandler):
             self.metadata_manager = MetaManager(self.application.sql_client, self.current_user, "")
             used = self.metadata_manager.count_usage()
 
-        allocated = self.get_free_space(options.storage_access_point)
-
+        free = self.get_free_space(options.storage_access_point)
+        allocated = used + free
 
         if is_pass_check:
             self.set_status(200)
             dict_usage = {'used': used,'trash': 0, 'allocated': allocated}
+            print dict_usage
             self.write(dict_usage)
         else:
             self.set_status(400)
@@ -37,7 +41,7 @@ class AccountUsageHandler(BaseHandler):
     def get_free_space(self, path):
         import os
         s = os.statvfs(path)
-        f = (s.f_bavail * s.f_frsize) / 1024
+        f = (s.f_bavail * s.f_frsize)
         return f
 
 class AccountSecurityQuestionHandler(BaseHandler):
