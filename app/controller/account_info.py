@@ -32,7 +32,7 @@ class AccountUsageHandler(BaseHandler):
         if is_pass_check:
             self.set_status(200)
             dict_usage = {'used': used,'trash': 0, 'allocated': allocated}
-            print dict_usage
+            #print dict_usage
             self.write(dict_usage)
         else:
             self.set_status(400)
