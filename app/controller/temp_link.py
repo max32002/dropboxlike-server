@@ -116,16 +116,13 @@ class GetTempLinkHandler(BaseHandler):
             #logging.error('%s' % (str(dict(error=dict(message=errorMessage,code=errorCode)))))
 
 class ViewTempLinkHandler(BaseHandler):
-    #remark by max, tornado's bug, I can't fix, the connection unable to finish.
-    #@tornado.gen.coroutine
-    #def head(self, link_id):
-        #return self.view_link(link_id, include_body=False)
-
-    #@tornado.gen.coroutine
-    def get(self, link_id):
-        return self.view_link(link_id, include_body=True)
+    def head(self, link_id):
+        return self.get(link_id, include_body=False)
 
     @tornado.gen.coroutine
+    def get(self, link_id, include_body=True):
+        return self.view_link(link_id)
+
     def view_link(self, link_id, include_body=True):
         dbo_temp_link = DboTempLink(self.application.sql_client)
 

@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS `repo_sharing` (
         return result
 
     def match(self, share_code, password):
+        share_code = share_code.lower()
         where = "share_code='" + share_code.replace("'", "''") + "' and password='" + password.replace("'", "''") + "'"
         #print "sql where:",where
         return self.first(where=where)
